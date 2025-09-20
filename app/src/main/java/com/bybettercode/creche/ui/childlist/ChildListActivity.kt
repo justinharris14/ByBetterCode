@@ -15,8 +15,10 @@ class ChildListActivity : AppCompatActivity(), ChildAdapter.OnChildClick {
     private lateinit var binding: ActivityChildListBinding
     private val viewModel: ChildListViewModel by viewModels {
         val db = AppDatabase.getInstance(applicationContext)
+
         ChildListViewModelFactory(ChildRepository(db.childDao()))
     }
+
 
     private var parentId: Long = -1L
 

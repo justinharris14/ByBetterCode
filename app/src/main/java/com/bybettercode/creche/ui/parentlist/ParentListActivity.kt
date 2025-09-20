@@ -27,6 +27,9 @@ class ParentListActivity : AppCompatActivity(), ParentAdapter.OnParentClick {
         binding.recyclerParents.layoutManager = LinearLayoutManager(this)
         binding.recyclerParents.adapter = adapter
 
+        // Load all parents initially
+        viewModel.loadAll()
+
         viewModel.parents.observe(this) { list ->
             adapter.submitList(list)
         }
@@ -43,3 +46,5 @@ class ParentListActivity : AppCompatActivity(), ParentAdapter.OnParentClick {
         startActivity(intent)
     }
 }
+
+

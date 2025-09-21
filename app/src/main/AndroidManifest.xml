@@ -27,6 +27,8 @@
         <!-- Other activities -->
         <activity android:name=".ui.childlist.ChildListActivity" />
         <activity android:name=".ui.childprofile.ChildProfileActivity" />
+        <activity android:name=".ui.parentlist.AddParentActivity" />
+        <activity android:name=".ui.childprofile.ChildEditActivity" />
 
     </application>
 

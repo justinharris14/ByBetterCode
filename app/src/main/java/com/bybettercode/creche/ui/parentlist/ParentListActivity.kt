@@ -2,8 +2,9 @@ package com.bybettercode.creche.ui.parentlist
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import android.util.Log
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bybettercode.creche.data.db.AppDatabase
 import com.bybettercode.creche.data.repository.ParentRepository
@@ -13,6 +14,8 @@ import com.bybettercode.creche.viewmodel.ParentListViewModelFactory
 
 class ParentListActivity : AppCompatActivity(), ParentAdapter.OnParentClick {
     private lateinit var binding: ActivityParentListBinding
+
+    // viewModel with factory
     private val viewModel: ParentListViewModel by viewModels {
         val db = AppDatabase.getInstance(applicationContext)
         ParentListViewModelFactory(ParentRepository(db.parentDao()))
@@ -31,6 +34,7 @@ class ParentListActivity : AppCompatActivity(), ParentAdapter.OnParentClick {
         viewModel.loadAll()
 
         viewModel.parents.observe(this) { list ->
+            Log.d("PARENT_LIST", "Parents observed: $list")
             adapter.submitList(list)
         }
 
@@ -38,13 +42,22 @@ class ParentListActivity : AppCompatActivity(), ParentAdapter.OnParentClick {
             val q = binding.searchEdit.text.toString()
             viewModel.setQuery(q)
         }
+
+        // Launch AddParentActivity when FAB clicked
+        binding.fabAddParent.setOnClickListener {
+            val intent = Intent(this, AddParentActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     override fun onParentClick(parentId: Long) {
+        // Sanity check: only open if valid id
+        if (parentId <= 0L) {
+            Log.e("PARENT_LIST", "Invalid parentId clicked: $parentId")
+            return
+        }
         val intent = Intent(this, com.bybettercode.creche.ui.childlist.ChildListActivity::class.java)
         intent.putExtra("parentId", parentId)
         startActivity(intent)
     }
 }
-
-

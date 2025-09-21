@@ -16,6 +16,12 @@
 
         <EditText android:id="@+id/etParentEmail" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:hint="Email" android:inputType="textEmailAddress" />
+        <EditText
+            android:id="@+id/etParentIdNumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="ID number (optional)"
+            android:inputType="text" />
 
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:text="Children" android:textStyle="bold" android:layout_marginTop="12dp" />

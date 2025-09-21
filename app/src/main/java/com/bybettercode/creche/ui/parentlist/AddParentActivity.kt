@@ -66,12 +66,15 @@ class AddParentActivity : AppCompatActivity() {
             // Launch coroutine to insert parent and children
             lifecycleScope.launch {
                 // Insert parent and get generated id (Long)
+                val idNumber = binding.etParentIdNumber.text.toString().trim().ifEmpty { null }
+
                 val newParentId: Long = withContext(Dispatchers.IO) {
                     parentRepo.addParent(
                         Parent(
                             name = name,
                             phone = phone,
-                            email = email
+                            email = email,
+                            idNumber = idNumber
                         )
                     )
                 }

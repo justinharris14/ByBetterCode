@@ -5,7 +5,23 @@
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Add Child" android:textSize="18sp" android:textStyle="bold"/>
         <EditText android:id="@+id/etChildName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Child name"/>
-        <EditText android:id="@+id/etChildDob" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Date of birth (YYYY-MM-DD)"/>
+        <TextView
+            android:id="@+id/tvChildDob"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Date of birth"
+            android:padding="12dp"
+            android:background="?attr/selectableItemBackground"
+            android:focusable="false"
+            android:clickable="true" />
+
+        <!-- Age display -->
+        <TextView
+            android:id="@+id/tvChildAge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Age: —"
+            android:layout_marginTop="6dp" />
         <EditText android:id="@+id/etChildDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Description"/>
         <EditText android:id="@+id/etChildAllergies" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Allergies"/>
         <EditText android:id="@+id/etChildMedicalHistory" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Medical history"/>

@@ -1,24 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:padding="12dp"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?android:attr/selectableItemBackground">
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    android:foreground="?android:attr/selectableItemBackground">
 
-    <TextView
-        android:id="@+id/parentName"
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textStyle="bold"
-        android:textSize="16sp"
-        android:text="Parent Name" />
+        android:padding="12dp">
 
-    <TextView
-        android:id="@+id/parentPhone"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="070 000 0000"
-        android:layout_marginTop="4dp"
-        android:textSize="14sp" />
-</LinearLayout>
+        <ImageView
+            android:id="@+id/ivAvatar"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:scaleType="centerCrop"
+            android:src="@android:drawable/sym_def_app_icon"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_card_rounded"
+            android:contentDescription="avatar"/>
+
+        <TextView
+            android:id="@+id/parentName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/ivAvatar"
+            android:layout_marginStart="12dp"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="@color/md_theme_onSurface"
+            android:text="Parent Name" />
+
+        <TextView
+            android:id="@+id/parentPhone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/parentName"
+            android:layout_toEndOf="@id/ivAvatar"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="6dp"
+            android:text="071 000 0000"
+            android:textColor="@color/muted"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/parentIdNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:textSize="12sp"
+            android:textColor="@color/md_theme_secondary"
+            android:text="9001011234087"/>
+    </RelativeLayout>
+</com.google.android.material.card.MaterialCardView>

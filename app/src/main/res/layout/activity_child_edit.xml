@@ -1,33 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="@color/md_theme_background">
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Add Child" android:textSize="18sp" android:textStyle="bold"/>
-        <EditText android:id="@+id/etChildName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Child name"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add Child"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"
+            android:textColor="@color/md_theme_onBackground"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Child name">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etChildName"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- DOB as tappable field -->
         <TextView
             android:id="@+id/tvChildDob"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Date of birth"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
             android:padding="12dp"
-            android:background="?attr/selectableItemBackground"
-            android:focusable="false"
-            android:clickable="true" />
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_card_rounded"
+            android:text="Tap to select date of birth"
+            android:textColor="@color/md_theme_onPrimary"
+            android:clickable="true"
+            android:focusable="true"/>
 
-        <!-- Age display -->
         <TextView
             android:id="@+id/tvChildAge"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Age: —"
-            android:layout_marginTop="6dp" />
-        <EditText android:id="@+id/etChildDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Description"/>
-        <EditText android:id="@+id/etChildAllergies" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Allergies"/>
-        <EditText android:id="@+id/etChildMedicalHistory" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Medical history"/>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="end" android:layout_marginTop="12dp">
-            <Button android:id="@+id/btnCancelChild" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Cancel"/>
-            <Button android:id="@+id/btnSaveChild" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Save" android:layout_marginStart="8dp"/>
+            android:layout_marginTop="6dp"
+            android:textColor="@color/muted"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Description"
+            android:layout_marginTop="8dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etChildDescription"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Allergies"
+            android:layout_marginTop="8dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etChildAllergies"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Medical history"
+            android:layout_marginTop="8dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etChildMedicalHistory"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="12dp">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCancelChild"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cancel"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveChild"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Save"
+                android:layout_marginStart="10dp"
+                app:backgroundTint="@color/md_theme_primary"/>
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

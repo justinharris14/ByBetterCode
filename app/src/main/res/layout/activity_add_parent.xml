@@ -1,42 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent" android:padding="16dp">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/md_theme_background"
+    android:padding="16dp">
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="vertical">
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:text="Add Parent" android:textSize="20sp" android:textStyle="bold" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add Parent"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"
+            android:textColor="@color/md_theme_onBackground"/>
 
-        <EditText android:id="@+id/etParentName" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:hint="Parent name" />
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Parent name">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etParentName"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText android:id="@+id/etParentPhone" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:hint="Phone" android:inputType="phone" />
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Phone"
+            android:layout_marginTop="8dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etParentPhone"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:inputType="phone"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText android:id="@+id/etParentEmail" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:hint="Email" android:inputType="textEmailAddress" />
-        <EditText
-            android:id="@+id/etParentIdNumber"
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Email"
+            android:layout_marginTop="8dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etParentEmail"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:inputType="textEmailAddress"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="ID number (optional)"
-            android:inputType="text" />
+            android:layout_marginTop="8dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etParentIdNumber"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:text="Children" android:textStyle="bold" android:layout_marginTop="12dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Children"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/md_theme_onBackground" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerTempChildren"
             android:layout_width="match_parent"
-            android:layout_height="200dp" />
+            android:layout_height="160dp"
+            android:layout_marginTop="8dp" />
 
-        <Button android:id="@+id/btnAddChild" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Add Child" />
+        <Button
+            android:id="@+id/btnAddChild"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add Child"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="@color/accent_yellow" />
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="horizontal" android:gravity="end" android:layout_marginTop="12dp">
-            <Button android:id="@+id/btnCancel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Cancel" />
-            <Button android:id="@+id/btnSaveParent" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Save" android:layout_marginStart="8dp"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cancel"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveParent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Save"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_marginStart="12dp"
+                app:backgroundTint="@color/md_theme_primary"/>
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

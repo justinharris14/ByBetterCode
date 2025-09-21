@@ -22,6 +22,7 @@ class ChildAdapter(private val listener: OnChildClick) : ListAdapter<Child, Chil
             b.childDob.text = c.dob ?: ""
             b.root.setOnClickListener { listener.onChildClick(c.childId) }
         }
+
     }
 
     companion object {

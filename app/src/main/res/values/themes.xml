@@ -1,33 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <style name="Theme.Crechemanagementapp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- primary brand colors -->
-        <item name="colorPrimary">@color/md_theme_primary</item>
-        <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
-        <item name="colorPrimaryVariant">@color/md_theme_primaryContainer</item>
+        <item name="colorPrimary">@color/md_primary</item>
+        <item name="colorOnPrimary">@color/md_onPrimary</item>
+        <item name="android:statusBarColor">@color/md_primary</item>
 
-        <item name="colorSecondary">@color/md_theme_secondary</item>
-        <item name="colorOnSecondary">@color/md_theme_onSecondary</item>
+        <!-- window/background colors -->
+        <item name="android:windowBackground">@color/md_background</item>
+        <item name="colorSurface">@color/md_surface</item>
+        <item name="colorOnSurface">@color/md_onSurface</item>
 
-        <item name="android:statusBarColor">@color/md_theme_primary</item>
-        <item name="android:navigationBarColor">@color/md_theme_primary</item>
-
-        <!-- surfaces and text -->
-        <item name="android:colorBackground">@color/md_theme_background</item>
-        <item name="android:textColor">@color/md_theme_onBackground</item>
-        <item name="materialCardViewStyle">@style/Widget.Creche.Card</item>
-
-        <!-- shape theming -->
-        <item name="shapeAppearanceSmallComponent">@style/Shape.Rounded10</item>
-
-        <!-- App bar / elevated surfaces -->
-        <item name="android:windowMinWidthMajor">0dp</item>
-        <item name="android:windowMinWidthMinor">0dp</item>
-    </style>
-
-    <!-- Rounded shapes -->
-    <style name="Shape.Rounded10">
-        <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">12dp</item>
+        <!-- keep theme minimal and valid (removed non-standard attributes) -->
     </style>
 </resources>

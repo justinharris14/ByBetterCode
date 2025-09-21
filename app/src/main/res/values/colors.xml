@@ -1,21 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand palette -->
-    <color name="md_theme_primary">#006E52</color>         <!-- deep teal -->
+    <!-- Primary red / white theme -->
+    <color name="md_theme_primary">#D32F2F</color>
     <color name="md_theme_onPrimary">#FFFFFF</color>
-    <color name="md_theme_primaryContainer">#90F1D6</color>
-    <color name="md_theme_onPrimaryContainer">#002115</color>
+    <color name="md_theme_primaryContainer">#FFCDD2</color>
 
-    <color name="md_theme_secondary">#4A67A6</color>       <!-- indigo accent -->
-    <color name="md_theme_onSecondary">#FFFFFF</color>
-    <color name="md_theme_background">#FFFDF8</color>      <!-- soft cream -->
+    <!-- Backwards-compatible aliases -->
+    <color name="md_primary">#D32F2F</color>
+    <color name="md_onPrimary">#FFFFFF</color>
+
+    <!-- Background / surfaces -->
+    <color name="md_theme_background">#FFFFFF</color>
+    <color name="md_theme_onBackground">#212121</color>
+
+    <color name="md_background">#FFFFFF</color>
+    <color name="md_onBackground">#212121</color>
+
     <color name="md_theme_surface">#FFFFFF</color>
-    <color name="md_theme_error">#B00020</color>
-    <color name="md_theme_onSurface">#1F2937</color>       <!-- dark slate for text -->
-    <color name="md_theme_onBackground">#1F2937</color>
+    <color name="md_theme_onSurface">#212121</color>
 
+    <color name="md_surface">#FFFFFF</color>
+    <color name="md_onSurface">#212121</color>
+
+    <!-- Secondary / accent -->
+    <color name="md_theme_secondary">#455A64</color>
+    <color name="md_theme_onSecondary">#FFFFFF</color>
+    <color name="md_theme_secondaryContainer">#CFD8DC</color>
+
+    <!-- Playful accents for kids -->
     <color name="accent_yellow">#FFD166</color>
-    <color name="accent_pink">#FF6B6B</color>
-    <color name="muted">#9AA4B2</color>
-    <color name="card_shadow">#1A000000</color> <!-- subtle shadow -->
+    <color name="accent_pink">#FF6B9A</color>
+    <color name="accent_teal">#4DB6AC</color>
+    <color name="accent_purple">#9575CD</color>
+    <color name="accent_orange">#FFB74D</color>
+
+    <!-- Muted / helper -->
+    <color name="muted">#9E9E9E</color>
+    <color name="card_shadow">#1A000000</color>
 </resources>

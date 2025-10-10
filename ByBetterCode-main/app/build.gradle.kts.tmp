@@ -1,0 +1,59 @@
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.multiplatform")
+    id("org.jetbrains.compose")
+}
+
+kotlin {
+    jvmToolchain(17)
+    androidTarget()
+
+    sourceSets {
+        val commonMain by getting
+        val androidMain by getting {
+            dependsOn(commonMain)
+            dependencies {
+                implementation(libs.androidx.core.ktx)
+                implementation(libs.androidx.activity.compose)
+                implementation(libs.androidx.compose.ui)
+                implementation(libs.androidx.compose.material3)
+                implementation(libs.androidx.compose.ui.tooling.preview)
+            }
+        }
+    }
+}
+
+android {
+    namespace = "com.crecheconnect"
+    compileSdk = 34
+
+    sourceSets {
+        named("main") {
+            manifest.srcFile("src/androidMain/AndroidManifest.xml")
+        }
+    }
+
+    defaultConfig {
+        minSdk = 24
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.8"
+    }
+}

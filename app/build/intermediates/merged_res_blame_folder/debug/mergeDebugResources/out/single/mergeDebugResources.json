@@ -1,0 +1,118 @@
+[
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\layout_dialog_edit_child.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\dialog_edit_child.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-xxxhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-xxxhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-anydpi-v26\\ic_launcher.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-xxxhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-xxxhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\layout_activity_main.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-mdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-mdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\layout_activity_child_edit.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_child_edit.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-hdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-hdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "com.bybettercode.creche.app-debug-41:/layout_activity_child_profile.xml.flat",
+        "source": "com.bybettercode.creche.app-main-43:/layout/activity_child_profile.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-xhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-xhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\drawable_ic_launcher_foreground.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\drawable\\ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\xml_backup_rules.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\xml\\backup_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-anydpi-v26\\ic_launcher_round.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-hdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-hdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-mdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-mdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\drawable_ic_launcher_background.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\drawable\\ic_launcher_background.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-xhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-xhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\drawable_bg_card_rounded.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\drawable\\bg_card_rounded.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\layout_activity_parent_list.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_parent_list.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-xxhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-xxhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\mipmap-xxhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\mipmap-xxhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\layout_item_child.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\item_child.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\layout_item_parent.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\item_parent.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\layout_activity_add_parent.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_add_parent.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\layout_item_temp_child.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\item_temp_child.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\xml_data_extraction_rules.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\xml\\data_extraction_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\layout_activity_child_profile.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_child_profile.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-debug-41:\\layout_activity_child_list.xml.flat",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_child_list.xml"
+    },
+    {
+        "merged": "com.bybettercode.creche.app-debug-41:/layout_item_child.xml.flat",
+        "source": "com.bybettercode.creche.app-main-43:/layout/item_child.xml"
+    }
+]

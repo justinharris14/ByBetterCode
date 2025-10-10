@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent_orange">#FFB74D</color>
+    <color name="accent_pink">#FF6B9A</color>
+    <color name="accent_purple">#9575CD</color>
+    <color name="accent_teal">#4DB6AC</color>
+    <color name="accent_yellow">#FFD166</color>
+    <color name="card_shadow">#1A000000</color>
+    <color name="md_background">#FFFFFF</color>
+    <color name="md_onBackground">#212121</color>
+    <color name="md_onPrimary">#FFFFFF</color>
+    <color name="md_onSurface">#212121</color>
+    <color name="md_primary">#D32F2F</color>
+    <color name="md_surface">#FFFFFF</color>
+    <color name="md_theme_background">#FFFFFF</color>
+    <color name="md_theme_onBackground">#212121</color>
+    <color name="md_theme_onPrimary">#FFFFFF</color>
+    <color name="md_theme_onSecondary">#FFFFFF</color>
+    <color name="md_theme_onSurface">#212121</color>
+    <color name="md_theme_primary">#D32F2F</color>
+    <color name="md_theme_primaryContainer">#FFCDD2</color>
+    <color name="md_theme_secondary">#455A64</color>
+    <color name="md_theme_secondaryContainer">#CFD8DC</color>
+    <color name="md_theme_surface">#FFFFFF</color>
+    <color name="muted">#9E9E9E</color>
+    <string name="app_name">crechemanagementapp</string>
+    <style name="Shape" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+    <style name="Theme.Crechemanagementapp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/md_primary</item>
+        <item name="colorOnPrimary">@color/md_onPrimary</item>
+        <item name="android:statusBarColor">@color/md_primary</item>
+
+        
+        <item name="android:windowBackground">@color/md_background</item>
+        <item name="colorSurface">@color/md_surface</item>
+        <item name="colorOnSurface">@color/md_onSurface</item>
+
+        
+    </style>
+    <style name="Widget.Creche.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">4dp</item>
+        <item name="cardUseCompatPadding">true</item>
+    </style>
+</resources>

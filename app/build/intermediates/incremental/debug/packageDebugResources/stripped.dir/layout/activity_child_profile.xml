@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/md_theme_background"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- TOP HEADER CARD: now light so dark text shows -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="6dp"
+            android:padding="14dp"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/md_theme_background">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- Avatar (rounded colored bg) -->
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/childPhoto"
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:src="@android:drawable/sym_def_app_icon"
+                    android:contentDescription="Child photo"
+                    android:scaleType="centerCrop"
+                    android:background="@drawable/bg_card_rounded" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+
+                    <!-- NAME: dark text -->
+                    <TextView
+                        android:id="@+id/childName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Child Name"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/md_theme_onBackground" />
+
+                    <!-- DOB: dark muted -->
+                    <TextView
+                        android:id="@+id/childDob"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="DOB: 2019-01-01"
+                        android:layout_marginTop="6dp"
+                        android:textColor="@color/muted" />
+
+                    <!-- Teacher: dark accent -->
+                    <TextView
+                        android:id="@+id/childTeacher"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Teacher: —"
+                        android:layout_marginTop="8dp"
+                        android:textColor="@color/accent_teal"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- About / Description (white surface, dark text) -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="About"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/md_theme_onBackground" />
+
+                <TextView
+                    android:id="@+id/childDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Short description goes here."
+                    android:layout_marginTop="6dp"
+                    android:textColor="@color/md_theme_onBackground" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Allergies -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Allergies"
+                        android:textStyle="bold"
+                        android:textColor="@color/md_theme_onBackground" />
+
+                    <TextView
+                        android:id="@+id/allergyStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/childAllergies"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="None"
+                    android:layout_marginTop="6dp"
+                    android:textColor="@color/muted" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Medical history -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Medical history"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/md_theme_onBackground" />
+
+                <TextView
+                    android:id="@+id/childMedicalHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="None"
+                    android:layout_marginTop="6dp"
+                    android:textColor="@color/muted" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Actions: Edit (admin only) and Message -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/editButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Edit"
+                app:backgroundTint="@color/md_theme_primary"
+                android:layout_marginEnd="8dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/messageButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Message"
+                app:backgroundTint="@color/accent_purple" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

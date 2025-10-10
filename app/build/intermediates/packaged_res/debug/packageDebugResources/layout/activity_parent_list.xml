@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/md_theme_background"
+    android:padding="16dp">
+
+    <!-- Container that the FAB will anchor to -->
+    <LinearLayout
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Header area -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="6dp"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Children &amp; Parents"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/md_theme_onPrimary" />
+
+                <ImageView
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@android:drawable/ic_menu_myplaces"
+                    android:contentDescription="logo"
+                    android:backgroundTint="@color/md_theme_primaryContainer"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Search bar -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/searchLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            app:startIconDrawable="@android:drawable/ic_menu_search"
+            app:boxCornerRadiusTopStart="10dp"
+            app:boxCornerRadiusTopEnd="10dp"
+            app:boxCornerRadiusBottomEnd="10dp"
+            app:boxCornerRadiusBottomStart="10dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/searchEdit"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:hint="Search parents or phone"
+                android:imeOptions="actionSearch"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- RecyclerView fills remaining space -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerParents"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="120dp"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
+        <Button
+            android:id="@+id/searchButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Search"
+            android:layout_marginStart="8dp"/>
+    </LinearLayout>
+
+    <!-- Floating Action Button anchored to the container (a sibling view) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddParent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="Add parent"
+        app:srcCompat="@android:drawable/ic_input_add"
+        app:backgroundTint="@color/md_theme_primary"
+        app:layout_anchor="@id/container"
+        app:layout_anchorGravity="bottom|end"
+        android:layout_margin="16dp"/>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

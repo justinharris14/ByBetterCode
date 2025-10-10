@@ -1,0 +1,50 @@
+[
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-mergeDebugResources-40:\\layout\\dialog_edit_child.xml",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\dialog_edit_child.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-mergeDebugResources-40:\\layout\\activity_child_edit.xml",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_child_edit.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-mergeDebugResources-40:\\layout\\item_temp_child.xml",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\item_temp_child.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-mergeDebugResources-40:\\layout\\item_child.xml",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\item_child.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-mergeDebugResources-40:\\layout\\activity_main.xml",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-mergeDebugResources-40:\\layout\\activity_parent_list.xml",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_parent_list.xml"
+    },
+    {
+        "merged": "com.bybettercode.creche.app-mergeDebugResources-40:/layout/activity_child_profile.xml",
+        "source": "com.bybettercode.creche.app-main-43:/layout/activity_child_profile.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-mergeDebugResources-40:\\layout\\item_parent.xml",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\item_parent.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-mergeDebugResources-40:\\layout\\activity_child_profile.xml",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_child_profile.xml"
+    },
+    {
+        "merged": "com.bybettercode.creche.app-mergeDebugResources-40:/layout/item_child.xml",
+        "source": "com.bybettercode.creche.app-main-43:/layout/item_child.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-mergeDebugResources-40:\\layout\\activity_child_list.xml",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_child_list.xml"
+    },
+    {
+        "merged": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-mergeDebugResources-40:\\layout\\activity_add_parent.xml",
+        "source": "C:\\Users\\remed\\.gradle\\daemon\\8.11.1\\com.bybettercode.creche.app-main-43:\\layout\\activity_add_parent.xml"
+    }
+]

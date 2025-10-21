@@ -1,5 +1,5 @@
-Of course. Here is a detailed app blueprint context file for your creche management application, structured to be simpler, clearer, and easier to interpret.
 
+10/21/25 Updated 
 ### **App Blueprint: "CrecheConnect"**
 
 **1. Project Overview**
@@ -37,7 +37,7 @@ Of course. Here is a detailed app blueprint context file for your creche managem
 
 **Diagram Explanation:**
 
-*   **Three Roles:** The diagram shows two user interfaces (Parent, Admin) interacting with the same app, which enforces role-based permissions. The backend server is the third "role" as the central data authority.
+*   **Three/two Roles:** The diagram shows two user interfaces (Parent, Admin) interacting with the same app, which enforces role-based permissions. The backend server is the third "role" as the central data authority.
 *   **Stripe Integration:** Stripe sits as a dedicated, secure service between the app and the financial network. The app communicates with Stripe's API to handle payment intents and confirmations, without sensitive payment data touching the app's main backend directly.
 *   **Notifications:** The Push Notification Service is triggered by the Backend Server. For example, when an Admin creates a new event, the server sends a push notification to all Parent devices.
 

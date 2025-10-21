@@ -16,7 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.crecheconnect.model.Event
-import com.crecheconnect.service.CacheManager
 import com.crecheconnect.service.EventRepository
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
@@ -29,165 +28,96 @@ fun CalendarView(
     onBackToDashboard: () -> Unit = {}
 ) {
     val events by EventRepository.events.collectAsState()
-    val cachedEvents by CacheManager.cachedEvents.collectAsState()
-    val lastSyncTime by CacheManager.lastSyncTime.collectAsState()
-    val isOnline by CacheManager.isOnline.collectAsState()
+    val isLoading by EventRepository.isLoading.collectAsState()
+    val error by EventRepository.error.collectAsState()
     val scope = rememberCoroutineScope()
-
-    // Load cached data when view is created
-    LaunchedEffect(Unit) {
-        CacheManager.loadCachedData()
-    }
-
-    // Update cache when events change
-    LaunchedEffect(events) {
-        if (events.isNotEmpty()) {
-            CacheManager.cacheEvents(events)
-        }
-    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Header with status, refresh button, and back button
+        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedButton(
-                onClick = onBackToDashboard
-            ) {
-                Text(text = "Back")
-            }
+            Text(
+                text = "Event Calendar",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
 
-            Column {
-                Text(
-                    text = "Event Calendar",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            Spacer(modifier = Modifier.width(16.dp))
 
-                // Show online/offline status
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    val statusColor = if (isOnline) Color.Green else Color.Red
-                    val statusText = if (isOnline) "Online" else "Offline"
-
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(statusColor)
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    // Show last sync time if available
-                    lastSyncTime?.let { syncTime ->
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Last sync: ${formatSyncTime(syncTime)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // Refresh button (only enabled when online)
+            // Refresh button
             IconButton(
                 onClick = {
-                    if (isOnline) {
-                        scope.launch {
-                            EventRepository.refreshEvents()
-                        }
+                    scope.launch {
+                        EventRepository.refreshEvents()
                     }
-                },
-                enabled = isOnline
+                }
             ) {
                 Icon(
                     imageVector = androidx.compose.material.icons.Icons.Default.Refresh,
                     contentDescription = "Refresh",
-                    tint = if (isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
 
-        // Show appropriate message when offline and no cached data
-        if (!isOnline && cachedEvents.isEmpty()) {
-            Box(
+        // Error display
+        error?.let { errorMessage ->
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+
+        // Loading or events list
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.CloudOff,
-                        contentDescription = "Offline",
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "You're currently offline",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = "Calendar events will appear here once you're back online and data is synced.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
+                CircularProgressIndicator()
+            }
+        } else if (events.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No events scheduled",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
-            // Calendar content
-            val displayEvents = if (isOnline) events else cachedEvents
-
-            if (displayEvents.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No events scheduled",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                items(events) { event ->
+                    EventCard(
+                        event = event,
+                        onClick = { onEventClick(event) }
                     )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    items(displayEvents) { event ->
-                        EventCard(
-                            event = event,
-                            onClick = { onEventClick(event) }
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }

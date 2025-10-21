@@ -66,10 +66,17 @@ dependencies {
     // Compose
     implementation(platform("androidx.compose:compose-bom:2024.09.00"))
     implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material")
+    implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material:material-icons-extended:1.6.8")
+    implementation("androidx.compose.runtime:runtime")
+    implementation("androidx.compose.runtime:runtime-livedata")
+    implementation("androidx.compose.animation:animation")
+    implementation("androidx.compose.animation:animation-core")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // Activity + Navigation
@@ -100,7 +107,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
 
     // Kotlin datetime
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
 
     // Testing
     testImplementation(libs.junit)

@@ -44,9 +44,7 @@ data class StudentAttendanceStatus(
 )
 
 @Composable
-fun ClassRosterScreen(
-    onBackToDashboard: () -> Unit = {}
-) {
+fun ClassRosterScreen() {
     var selectedClass by remember { mutableStateOf<String?>(null) }
     var attendanceStatuses by remember { mutableStateOf<Map<Long, Boolean>>(emptyMap()) }
 
@@ -68,20 +66,16 @@ fun ClassRosterScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedButton(
-                onClick = onBackToDashboard
-            ) {
-                Text(text = "Back")
-            }
-
             Text(
                 text = "Class Roster",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
+
+            Spacer(modifier = Modifier.width(16.dp))
 
             // Summary badge
             Card(

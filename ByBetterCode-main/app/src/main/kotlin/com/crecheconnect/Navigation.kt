@@ -8,8 +8,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.material3.Text
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.composable
 import com.crecheconnect.model.User
 import com.crecheconnect.model.UserRole
 import com.crecheconnect.ui.admin.AdminDashboard
@@ -57,12 +57,7 @@ fun CrecheConnectNavHost(
         }
 
         composable(Screen.AdminDashboard.route) {
-            AdminDashboard(
-                onManageEvents = { /* Navigate to events management */ },
-                onTakeAttendance = { navController.navigate(Screen.AttendanceView.route) },
-                onViewSubscriptions = { /* Navigate to subscriptions */ },
-                onViewClassRoster = { /* Navigate to class roster */ }
-            )
+            AdminDashboard()
         }
 
         composable(Screen.ParentDashboard.route) {

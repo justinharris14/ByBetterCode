@@ -1,19 +1,18 @@
-package com.crecheconnect.ui.admin
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.crecheconnect.model.Event
 import com.crecheconnect.service.EventRepository
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.coroutines.launch
+import kotlinx.datetime.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,13 +23,26 @@ fun AddEditEventScreen(
 ) {
     var title by remember { mutableStateOf(eventToEdit?.title ?: "") }
     var description by remember { mutableStateOf(eventToEdit?.description ?: "") }
-    var date by remember { mutableStateOf(eventToEdit?.date ?: "") }
-    var startTime by remember { mutableStateOf(eventToEdit?.startTime ?: "") }
-    var endTime by remember { mutableStateOf(eventToEdit?.endTime ?: "") }
+    var selectedDate by remember {
+        mutableStateOf(
+            eventToEdit?.date ?: Clock.System.todayIn(TimeZone.currentSystemDefault())
+        )
+    }
+    var startTime by remember {
+        mutableStateOf(
+            eventToEdit?.startTime ?: LocalTime(9, 0)
+        )
+    }
+    var endTime by remember {
+        mutableStateOf(
+            eventToEdit?.endTime ?: LocalTime(10, 0)
+        )
+    }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val isEditing = eventToEdit != null
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -60,7 +72,7 @@ fun AddEditEventScreen(
             Button(
                 onClick = {
                     // Validation
-                    if (title.isBlank() || date.isBlank() || startTime.isBlank() || endTime.isBlank()) {
+                    if (title.isBlank()) {
                         errorMessage = "Please fill in all required fields"
                         return@Button
                     }
@@ -72,23 +84,27 @@ fun AddEditEventScreen(
                         id = eventToEdit?.id,
                         title = title.trim(),
                         description = description.trim().takeIf { it.isNotBlank() },
-                        date = date,
+                        date = selectedDate,
                         startTime = startTime,
                         endTime = endTime,
-                        createdBy = 1, // In real app, get from current user
-                        createdAt = if (isEditing) eventToEdit?.createdAt else Clock.System.now()
+                        createdBy = 1 // In real app, get from current user
                     )
 
                     if (isEditing) {
-                        EventRepository.updateEvent(event)
+                        scope.launch {
+                            EventRepository.updateEvent(event)
+                            isLoading = false
+                            onSave()
+                        }
                     } else {
-                        EventRepository.addEvent(event)
+                        scope.launch {
+                            EventRepository.addEvent(event)
+                            isLoading = false
+                            onSave()
+                        }
                     }
-
-                    isLoading = false
-                    onSave()
                 },
-                enabled = !isLoading && title.isNotBlank() && date.isNotBlank() && startTime.isNotBlank() && endTime.isNotBlank()
+                enabled = !isLoading && title.isNotBlank()
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -144,35 +160,63 @@ fun AddEditEventScreen(
                 maxLines = 4
             )
 
-            OutlinedTextField(
-                value = date,
-                onValueChange = { date = it },
-                label = { Text("Date (YYYY-MM-DD) *") },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("e.g., 2024-01-15") },
-                singleLine = true
-            )
+            // Date display (read-only, selected from calendar)
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Text(
+                    text = selectedDate.toString(),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(
-                    value = startTime,
-                    onValueChange = { startTime = it },
+                    value = startTime.toString(),
+                    onValueChange = {
+                        try {
+                            val parts = it.split(":")
+                            if (parts.size == 2) {
+                                val hour = parts[0].toIntOrNull() ?: startTime.hour
+                                val minute = parts[1].toIntOrNull() ?: startTime.minute
+                                startTime = LocalTime(hour, minute)
+                            }
+                        } catch (e: Exception) {
+                            // Invalid time format, keep current value
+                        }
+                    },
                     label = { Text("Start Time *") },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("e.g., 10:00") },
-                    singleLine = true
+                    placeholder = { Text("HH:MM") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                 )
 
                 OutlinedTextField(
-                    value = endTime,
-                    onValueChange = { endTime = it },
+                    value = endTime.toString(),
+                    onValueChange = {
+                        try {
+                            val parts = it.split(":")
+                            if (parts.size == 2) {
+                                val hour = parts[0].toIntOrNull() ?: endTime.hour
+                                val minute = parts[1].toIntOrNull() ?: endTime.minute
+                                endTime = LocalTime(hour, minute)
+                            }
+                        } catch (e: Exception) {
+                            // Invalid time format, keep current value
+                        }
+                    },
                     label = { Text("End Time *") },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("e.g., 11:00") },
-                    singleLine = true
+                    placeholder = { Text("HH:MM") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                 )
             }
 

@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
@@ -18,8 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.crecheconnect.model.Subscription
 import com.crecheconnect.model.SubscriptionStatus
-import com.crecheconnect.model.User
 import com.crecheconnect.model.SubscriptionType
+import com.crecheconnect.model.User
+import com.crecheconnect.ui.admin.StatCard
 
 // Sample subscriptions for demonstration
 val sampleSubscriptions = listOf(
@@ -57,9 +59,7 @@ val sampleUsers = listOf(
 )
 
 @Composable
-fun AdminSubscriptionScreen(
-    onBackToDashboard: () -> Unit = {}
-) {
+fun AdminSubscriptionScreen() {
     var selectedStatus by remember { mutableStateOf<SubscriptionStatus?>(null) }
     var selectedType by remember { mutableStateOf<SubscriptionType?>(null) }
 
@@ -99,15 +99,9 @@ fun AdminSubscriptionScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedButton(
-                onClick = onBackToDashboard
-            ) {
-                Text(text = "Back")
-            }
-
             Text(
                 text = "Subscription Management",
                 style = MaterialTheme.typography.headlineMedium,

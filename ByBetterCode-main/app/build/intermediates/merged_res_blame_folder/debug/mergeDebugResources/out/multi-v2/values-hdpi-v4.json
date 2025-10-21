@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.crecheconnect.app-mergeDebugResources-78:/values-hdpi-v4/values-hdpi-v4.xml",
+            "outputFile": "com.crecheconnect.app-mergeDebugResources-79:/values-hdpi-v4/values-hdpi-v4.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\remed\\.gradle\\caches\\8.11.1\\transforms\\1d2520154e0ffb71ac60f2816bd24eb8\\transformed\\appcompat-1.6.1\\res\\values-hdpi-v4\\values-hdpi-v4.xml",
+                    "source": "C:\\Users\\pc\\.gradle\\caches\\8.11.1\\transforms\\1c7807c4db4e3c06037a337ba2e298ce\\transformed\\appcompat-1.6.1\\res\\values-hdpi-v4\\values-hdpi-v4.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

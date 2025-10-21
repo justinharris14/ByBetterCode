@@ -1,5 +1,6 @@
 [versions]
 kotlin = "1.9.22"
+kotlinx-datetime = "0.5.0"
 androidApplication = "8.10.1"
 jetbrainsCompose = "1.6.10"
 sqldelight = "2.0.1"
@@ -24,6 +25,7 @@ espressoCore = "3.5.1"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }

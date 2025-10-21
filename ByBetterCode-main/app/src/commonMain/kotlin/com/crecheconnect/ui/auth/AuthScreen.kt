@@ -40,7 +40,7 @@ fun AuthScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = if (isLoginMode) "Login" else "Sign Up",
+            text = if (isLoginMode) "Login" else "Sign Up Now",
             style = MaterialTheme.typography.headlineMedium
         )
 

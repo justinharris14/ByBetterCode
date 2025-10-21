@@ -17,22 +17,27 @@ Stripe gateway
 
 TASKS DUE 24/10/25
 
+
 Justin:
 Stripe Integration:
  Parents can make payment for tuition and activities
+
 @ZG:
 Events & Notifications:
  Admin can add events
  Parents should receive Notifications for announcements made by admins
+
 @~Cvszy 
 Attendance:
  Only admins can edit attendance in any way
  Complete filters and add a graph (wow factor)
  Secure login via firebase 
+
 @Nasar:
 Capturing details (admin)
  Admin should capture details for parents and children, parents can only read
  Children should be "linked" to a parent
+
 @~Khulekani Legend.:
 Calendar integration:
 Parents should be able to sync events into calendar

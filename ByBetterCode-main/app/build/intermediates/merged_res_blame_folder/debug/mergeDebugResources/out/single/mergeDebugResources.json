@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "com.crecheconnect.app-debug-81:/xml_data_extraction_rules.xml.flat",
+        "source": "com.crecheconnect.app-main-83:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.crecheconnect.app-debug-81:/xml_backup_rules.xml.flat",
+        "source": "com.crecheconnect.app-main-83:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.crecheconnect.app-debug-81:/mipmap-mdpi_ic_launcher_round.xml.flat",
+        "source": "com.crecheconnect.app-main-83:/mipmap-mdpi/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.crecheconnect.app-debug-81:/mipmap-mdpi_ic_launcher.xml.flat",
+        "source": "com.crecheconnect.app-main-83:/mipmap-mdpi/ic_launcher.xml"
+    }
+]

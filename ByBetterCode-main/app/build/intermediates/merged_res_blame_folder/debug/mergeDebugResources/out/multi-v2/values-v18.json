@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.crecheconnect.app-mergeDebugResources-79:/values-v18/values-v18.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\remed\\.gradle\\caches\\8.11.1\\transforms\\1d2520154e0ffb71ac60f2816bd24eb8\\transformed\\appcompat-1.6.1\\res\\values-v18\\values-v18.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "48",
+                        "endOffsets": "99"
+                    }
+                }
+            ]
+        }
+    ]
+}

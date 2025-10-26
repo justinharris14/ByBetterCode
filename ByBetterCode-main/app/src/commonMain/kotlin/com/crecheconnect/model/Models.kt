@@ -1,11 +1,9 @@
 package com.crecheconnect.model
 
-import kotlinx.serialization.Serializable
 import kotlinx.datetime.Instant
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
-@Serializable
 data class User(
     val id: Long? = null,
     val email: String,
@@ -20,19 +18,6 @@ enum class UserRole {
     PARENT, ADMIN
 }
 
-@Serializable
-data class Event(
-    val id: Long? = null,
-    val title: String,
-    val description: String? = null,
-    val date: String,
-    val startTime: String,
-    val endTime: String,
-    val createdBy: Long,
-    val createdAt: Instant? = null
-)
-
-@Serializable
 data class Student(
     val id: Long? = null,
     val name: String,
@@ -42,7 +27,6 @@ data class Student(
     val createdAt: Instant? = null
 )
 
-@Serializable
 data class AttendanceRecord(
     val id: Long? = null,
     val studentId: Long,
@@ -60,7 +44,6 @@ enum class SubscriptionStatus {
     ACTIVE, INACTIVE, CANCELED
 }
 
-@Serializable
 data class Subscription(
     val id: Long? = null,
     val userId: Long,

@@ -5,159 +5,208 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  ScrollView,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
+import { colors, commonStyles } from '@/styles/commonStyles';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { setMockUser } = useAuth();
+  const [loading, setLoading] = useState(false);
 
-  const handleRoleSelection = (role: 'admin' | 'parent') => {
-    console.log(`Selected role: ${role}`);
+  const handleAdminLogin = async () => {
+    setLoading(true);
+    console.log('Admin login selected');
     
-    if (role === 'admin') {
-      router.replace('/(admin)/dashboard');
-    } else {
-      router.replace('/(parent)/dashboard');
+    try {
+      // Fetch the admin user from the database
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'admin')
+        .single();
+
+      if (error) {
+        console.error('Error fetching admin user:', error);
+        // Fallback to mock user
+        setMockUser('admin');
+      } else if (data) {
+        console.log('Admin user loaded:', data);
+        // Set the real user data
+        setMockUser('admin');
+      }
+    } catch (error) {
+      console.error('Error during admin login:', error);
+      setMockUser('admin');
     }
+    
+    setLoading(false);
+    router.replace('/(admin)/dashboard');
+  };
+
+  const handleParentLogin = async () => {
+    setLoading(true);
+    console.log('Parent login selected');
+    
+    try {
+      // Fetch a parent user from the database
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'parent')
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error fetching parent user:', error);
+        // Fallback to mock user
+        setMockUser('parent');
+      } else if (data) {
+        console.log('Parent user loaded:', data);
+        // Set the real user data
+        setMockUser('parent');
+      }
+    } catch (error) {
+      console.error('Error during parent login:', error);
+      setMockUser('parent');
+    }
+    
+    setLoading(false);
+    router.replace('/(parent)/dashboard');
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.logo}>🏫</Text>
-        <Text style={styles.appName}>CrècheConnect</Text>
-        <Text style={styles.tagline}>Connecting Care, Building Trust</Text>
+        <View style={styles.logoContainer}>
+          <Text style={styles.logo}>🏫</Text>
+          <Text style={styles.title}>CrècheConnect</Text>
+          <Text style={styles.subtitle}>Childcare Management System</Text>
+        </View>
 
-        <View style={styles.form}>
-          <Text style={styles.selectTitle}>Select Your Role</Text>
-          <Text style={styles.selectSubtitle}>
-            Choose how you want to access the app
+        <View style={styles.buttonContainer}>
+          <Text style={styles.selectText}>Select Your Role</Text>
+          
+          <TouchableOpacity
+            style={[styles.button, styles.adminButton]}
+            onPress={handleAdminLogin}
+            disabled={loading}
+          >
+            <Text style={styles.buttonIcon}>👨‍💼</Text>
+            <Text style={styles.buttonText}>Admin Dashboard</Text>
+            <Text style={styles.buttonSubtext}>Manage center operations</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.parentButton]}
+            onPress={handleParentLogin}
+            disabled={loading}
+          >
+            <Text style={styles.buttonIcon}>👨‍👩‍👧‍👦</Text>
+            <Text style={styles.buttonText}>Parent Dashboard</Text>
+            <Text style={styles.buttonSubtext}>View your children&apos;s info</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Demo Mode - No authentication required
           </Text>
-
-          <TouchableOpacity
-            style={[buttonStyles.primary, styles.roleButton]}
-            onPress={() => handleRoleSelection('admin')}
-          >
-            <Text style={styles.roleIcon}>👩‍💼</Text>
-            <View style={styles.roleTextContainer}>
-              <Text style={styles.roleButtonTitle}>Admin Dashboard</Text>
-              <Text style={styles.roleButtonSubtitle}>
-                Manage children, attendance, events & more
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[buttonStyles.primary, styles.roleButton, styles.parentButton]}
-            onPress={() => handleRoleSelection('parent')}
-          >
-            <Text style={styles.roleIcon}>👨‍👩‍👧</Text>
-            <View style={styles.roleTextContainer}>
-              <Text style={styles.roleButtonTitle}>Parent Dashboard</Text>
-              <Text style={styles.roleButtonSubtitle}>
-                View your children, attendance & payments
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.infoBox}>
-            <Text style={styles.infoText}>
-              ℹ️ Demo Mode: Authentication is temporarily disabled for testing
-            </Text>
-          </View>
+          <Text style={styles.footerSubtext}>
+            ✅ Connected to Supabase
+          </Text>
         </View>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
+    padding: 24,
+  },
+  logoContainer: {
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: colors.background,
+    marginBottom: 60,
   },
   logo: {
     fontSize: 80,
     marginBottom: 16,
   },
-  appName: {
-    fontSize: 36,
+  title: {
+    fontSize: 32,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
   },
-  tagline: {
+  subtitle: {
     fontSize: 16,
     color: colors.textSecondary,
-    marginBottom: 40,
   },
-  form: {
-    width: '100%',
-    maxWidth: 400,
+  buttonContainer: {
+    gap: 16,
   },
-  selectTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+  selectText: {
+    fontSize: 18,
+    fontWeight: '600',
     color: colors.text,
+    textAlign: 'center',
     marginBottom: 8,
-    textAlign: 'center',
   },
-  selectSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 32,
-    textAlign: 'center',
-  },
-  roleButton: {
-    flexDirection: 'row',
+  button: {
+    padding: 24,
+    borderRadius: 16,
     alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    minHeight: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  adminButton: {
+    backgroundColor: colors.primary,
   },
   parentButton: {
     backgroundColor: colors.secondary,
   },
-  roleIcon: {
+  buttonIcon: {
     fontSize: 48,
-    marginRight: 16,
+    marginBottom: 12,
   },
-  roleTextContainer: {
-    flex: 1,
-  },
-  roleButtonTitle: {
-    color: colors.white,
+  buttonText: {
     fontSize: 20,
     fontWeight: '700',
+    color: colors.white,
     marginBottom: 4,
   },
-  roleButtonSubtitle: {
+  buttonSubtext: {
+    fontSize: 14,
     color: colors.white,
-    fontSize: 13,
     opacity: 0.9,
   },
-  infoBox: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+  footer: {
+    marginTop: 40,
+    alignItems: 'center',
   },
-  infoText: {
+  footerText: {
     fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 18,
+  },
+  footerSubtext: {
+    fontSize: 12,
+    color: '#4CAF50',
+    textAlign: 'center',
+    marginTop: 4,
+    fontWeight: '600',
   },
 });

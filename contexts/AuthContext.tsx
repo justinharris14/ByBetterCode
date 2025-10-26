@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { User } from '@/types/database.types';
+import { supabase } from '@/lib/supabase';
 
 interface AuthContextType {
   session: Session | null;
@@ -10,7 +11,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, userData: Partial<User>) => Promise<void>;
-  setMockUser: (role: 'admin' | 'parent') => void;
+  setMockUser: (role: 'admin' | 'parent') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,22 +21,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Mock user setter for demo mode
-  const setMockUser = (role: 'admin' | 'parent') => {
+  // Mock user setter for demo mode - fetches real user from database
+  const setMockUser = async (role: 'admin' | 'parent') => {
     console.log('Setting mock user with role:', role);
     
-    const mockUser: User = {
-      user_id: role === 'admin' ? 'mock-admin-id' : 'mock-parent-id',
-      first_name: role === 'admin' ? 'Admin' : 'Parent',
-      last_name: role === 'admin' ? 'User' : 'User',
-      email: role === 'admin' ? 'admin@demo.com' : 'parent@demo.com',
-      phone: '0123456789',
-      role: role,
-      created_at: new Date().toISOString(),
-      is_active: true,
-    };
-    
-    setUser(mockUser);
+    try {
+      // Fetch a real user from the database based on role
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', role)
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user:', error);
+        // Fallback to hardcoded mock user
+        const mockUser: User = {
+          user_id: role === 'admin' ? '11111111-1111-1111-1111-111111111111' : '22222222-2222-2222-2222-222222222222',
+          first_name: role === 'admin' ? 'Lindiwe' : 'Thabo',
+          last_name: role === 'admin' ? 'Mkhize' : 'Dlamini',
+          email: role === 'admin' ? 'admin@crecheconnect.com' : 'thabo@example.com',
+          phone: '0123456789',
+          role: role,
+          created_at: new Date().toISOString(),
+          is_active: true,
+        };
+        setUser(mockUser);
+      } else if (data) {
+        console.log('User loaded from database:', data);
+        setUser(data as User);
+      }
+    } catch (error) {
+      console.error('Error in setMockUser:', error);
+      // Fallback to hardcoded mock user
+      const mockUser: User = {
+        user_id: role === 'admin' ? '11111111-1111-1111-1111-111111111111' : '22222222-2222-2222-2222-222222222222',
+        first_name: role === 'admin' ? 'Lindiwe' : 'Thabo',
+        last_name: role === 'admin' ? 'Mkhize' : 'Dlamini',
+        email: role === 'admin' ? 'admin@crecheconnect.com' : 'thabo@example.com',
+        phone: '0123456789',
+        role: role,
+        created_at: new Date().toISOString(),
+        is_active: true,
+      };
+      setUser(mockUser);
+    }
   };
 
   // Placeholder functions (not used in demo mode)

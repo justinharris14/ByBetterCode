@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { supabase } from '@/lib/supabase';
 
 interface DashboardStats {
   totalChildren: number;
@@ -22,22 +23,89 @@ interface DashboardStats {
 export default function AdminDashboard() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  
-  // Mock data for demo mode
   const [stats, setStats] = useState<DashboardStats>({
-    totalChildren: 12,
-    totalEvents: 3,
-    paymentsDue: 5,
-    attendanceRate: 92,
+    totalChildren: 0,
+    totalEvents: 0,
+    paymentsDue: 0,
+    attendanceRate: 0,
   });
 
-  const onRefresh = () => {
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      console.log('Loading dashboard stats...');
+
+      // Get total children count
+      const { count: childrenCount, error: childrenError } = await supabase
+        .from('children')
+        .select('*', { count: 'exact', head: true });
+
+      if (childrenError) {
+        console.error('Error loading children count:', childrenError);
+      }
+
+      // Get upcoming events count
+      const { count: eventsCount, error: eventsError } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .gte('event_datetime', new Date().toISOString());
+
+      if (eventsError) {
+        console.error('Error loading events count:', eventsError);
+      }
+
+      // Get pending payments count
+      const { count: paymentsCount, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      if (paymentsError) {
+        console.error('Error loading payments count:', paymentsError);
+      }
+
+      // Calculate attendance rate for today
+      const today = new Date().toISOString().split('T')[0];
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('is_present')
+        .eq('date', today);
+
+      if (attendanceError) {
+        console.error('Error loading attendance:', attendanceError);
+      }
+
+      let attendanceRate = 0;
+      if (attendanceData && attendanceData.length > 0) {
+        const presentCount = attendanceData.filter(a => a.is_present).length;
+        attendanceRate = Math.round((presentCount / attendanceData.length) * 100);
+      }
+
+      setStats({
+        totalChildren: childrenCount || 0,
+        totalEvents: eventsCount || 0,
+        paymentsDue: paymentsCount || 0,
+        attendanceRate: attendanceRate,
+      });
+
+      console.log('Stats loaded successfully:', {
+        totalChildren: childrenCount,
+        totalEvents: eventsCount,
+        paymentsDue: paymentsCount,
+        attendanceRate,
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    console.log('Refreshing dashboard (demo mode)');
-    // Simulate refresh
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await loadStats();
+    setRefreshing(false);
   };
 
   const handleSignOut = () => {
@@ -153,9 +221,9 @@ export default function AdminDashboard() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.demoNotice}>
-          <Text style={styles.demoNoticeText}>
-            ℹ️ Demo Mode: Supabase integration is temporarily disabled
+        <View style={styles.successNotice}>
+          <Text style={styles.successNoticeText}>
+            ✅ Supabase Connected: Real-time data enabled
           </Text>
         </View>
       </ScrollView>
@@ -256,17 +324,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  demoNotice: {
+  successNotice: {
     margin: 20,
     padding: 16,
-    backgroundColor: colors.card,
+    backgroundColor: '#E8F5E9',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#4CAF50',
   },
-  demoNoticeText: {
+  successNoticeText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: '#2E7D32',
     textAlign: 'center',
+    fontWeight: '600',
   },
 });

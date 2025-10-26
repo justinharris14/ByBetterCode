@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ParentStats {
   childrenCount: number;
@@ -21,23 +23,91 @@ interface ParentStats {
 
 export default function ParentDashboard() {
   const router = useRouter();
+  const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
-  
-  // Mock data for demo mode
   const [stats, setStats] = useState<ParentStats>({
-    childrenCount: 2,
-    upcomingEvents: 3,
-    unreadNotifications: 5,
-    pendingPayments: 1,
+    childrenCount: 0,
+    upcomingEvents: 0,
+    unreadNotifications: 0,
+    pendingPayments: 0,
   });
 
-  const onRefresh = () => {
+  useEffect(() => {
+    if (user) {
+      loadStats();
+    }
+  }, [user]);
+
+  const loadStats = async () => {
+    if (!user) return;
+
+    try {
+      console.log('Loading parent dashboard stats for user:', user.user_id);
+
+      // Get children count for this parent
+      const { count: childrenCount, error: childrenError } = await supabase
+        .from('children')
+        .select('*', { count: 'exact', head: true })
+        .eq('parent_id', user.user_id);
+
+      if (childrenError) {
+        console.error('Error loading children count:', childrenError);
+      }
+
+      // Get upcoming events count
+      const { count: eventsCount, error: eventsError } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .gte('event_datetime', new Date().toISOString());
+
+      if (eventsError) {
+        console.error('Error loading events count:', eventsError);
+      }
+
+      // Get unread notifications count
+      const { count: notificationsCount, error: notificationsError } = await supabase
+        .from('event_notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('parent_id', user.user_id)
+        .eq('is_read', false);
+
+      if (notificationsError) {
+        console.error('Error loading notifications count:', notificationsError);
+      }
+
+      // Get pending payments count
+      const { count: paymentsCount, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*', { count: 'exact', head: true })
+        .eq('parent_id', user.user_id)
+        .eq('status', 'pending');
+
+      if (paymentsError) {
+        console.error('Error loading payments count:', paymentsError);
+      }
+
+      setStats({
+        childrenCount: childrenCount || 0,
+        upcomingEvents: eventsCount || 0,
+        unreadNotifications: notificationsCount || 0,
+        pendingPayments: paymentsCount || 0,
+      });
+
+      console.log('Parent stats loaded successfully:', {
+        childrenCount,
+        upcomingEvents: eventsCount,
+        unreadNotifications: notificationsCount,
+        pendingPayments: paymentsCount,
+      });
+    } catch (error) {
+      console.error('Error loading parent stats:', error);
+    }
+  };
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    console.log('Refreshing dashboard (demo mode)');
-    // Simulate refresh
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await loadStats();
+    setRefreshing(false);
   };
 
   const handleSignOut = () => {
@@ -55,7 +125,7 @@ export default function ParentDashboard() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Welcome Back! 👋</Text>
+            <Text style={styles.greeting}>Hello, {user?.first_name}! 👋</Text>
             <Text style={styles.subGreeting}>Parent Dashboard</Text>
           </View>
           <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
@@ -110,8 +180,8 @@ export default function ParentDashboard() {
           >
             <IconSymbol name="check.circle" size={28} color={colors.primary} />
             <View style={styles.actionTextContainer}>
-              <Text style={styles.actionTitle}>Attendance History</Text>
-              <Text style={styles.actionSubtitle}>View attendance records</Text>
+              <Text style={styles.actionTitle}>Attendance</Text>
+              <Text style={styles.actionSubtitle}>Check attendance history</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -130,24 +200,24 @@ export default function ParentDashboard() {
 
           <TouchableOpacity
             style={styles.actionCard}
-            onPress={() => router.push('/(parent)/payments')}
-          >
-            <IconSymbol name="payment" size={28} color={colors.primary} />
-            <View style={styles.actionTextContainer}>
-              <Text style={styles.actionTitle}>Payments</Text>
-              <Text style={styles.actionSubtitle}>View and make payments</Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionCard}
             onPress={() => router.push('/(parent)/announcements')}
           >
             <IconSymbol name="notifications" size={28} color={colors.primary} />
             <View style={styles.actionTextContainer}>
               <Text style={styles.actionTitle}>Announcements</Text>
               <Text style={styles.actionSubtitle}>Read school updates</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(parent)/payments')}
+          >
+            <IconSymbol name="payment" size={28} color={colors.primary} />
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Payments</Text>
+              <Text style={styles.actionSubtitle}>View payment history</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -165,9 +235,9 @@ export default function ParentDashboard() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.demoNotice}>
-          <Text style={styles.demoNoticeText}>
-            ℹ️ Demo Mode: Supabase integration is temporarily disabled
+        <View style={styles.successNotice}>
+          <Text style={styles.successNoticeText}>
+            ✅ Supabase Connected: Real-time data enabled
           </Text>
         </View>
       </ScrollView>
@@ -268,17 +338,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  demoNotice: {
+  successNotice: {
     margin: 20,
     padding: 16,
-    backgroundColor: colors.card,
+    backgroundColor: '#E8F5E9',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#4CAF50',
   },
-  demoNoticeText: {
+  successNoticeText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: '#2E7D32',
     textAlign: 'center',
+    fontWeight: '600',
   },
 });

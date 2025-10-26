@@ -1,19 +1,26 @@
-package com.crecheconnect.ui.admin
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.crecheconnect.model.Event
 import com.crecheconnect.service.EventRepository
-import kotlinx.datetime.Clock
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+
+// Helper function to format datetime for display
+fun formatEventDateTime(instant: Instant): String {
+    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    return "${dateTime.date} at ${dateTime.time}"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,13 +31,16 @@ fun AddEditEventScreen(
 ) {
     var title by remember { mutableStateOf(eventToEdit?.title ?: "") }
     var description by remember { mutableStateOf(eventToEdit?.description ?: "") }
-    var date by remember { mutableStateOf(eventToEdit?.date ?: "") }
-    var startTime by remember { mutableStateOf(eventToEdit?.startTime ?: "") }
-    var endTime by remember { mutableStateOf(eventToEdit?.endTime ?: "") }
+    var eventDateTime by remember {
+        mutableStateOf(
+            eventToEdit?.eventDateTime ?: kotlinx.datetime.Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        )
+    }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val isEditing = eventToEdit != null
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -60,7 +70,7 @@ fun AddEditEventScreen(
             Button(
                 onClick = {
                     // Validation
-                    if (title.isBlank() || date.isBlank() || startTime.isBlank() || endTime.isBlank()) {
+                    if (title.isBlank()) {
                         errorMessage = "Please fill in all required fields"
                         return@Button
                     }
@@ -72,23 +82,29 @@ fun AddEditEventScreen(
                         id = eventToEdit?.id,
                         title = title.trim(),
                         description = description.trim().takeIf { it.isNotBlank() },
-                        date = date,
-                        startTime = startTime,
-                        endTime = endTime,
-                        createdBy = 1, // In real app, get from current user
-                        createdAt = if (isEditing) eventToEdit?.createdAt else Clock.System.now()
+                        eventDateTime = eventDateTime,
+                        eventID = eventToEdit?.eventID ?: java.util.UUID.randomUUID().toString(),
+                        Date = eventToEdit?.Date ?: "",
+                        createByID = eventToEdit?.createByID ?: "uuidOfAdmin",
+                        createdAt = eventToEdit?.createdAt ?: kotlinx.datetime.Instant.fromEpochMilliseconds(System.currentTimeMillis()),
+                        createdBy = 1 // In real app, get from current user
                     )
 
                     if (isEditing) {
-                        EventRepository.updateEvent(event)
+                        scope.launch {
+                            EventRepository.updateEvent(event)
+                            isLoading = false
+                            onSave()
+                        }
                     } else {
-                        EventRepository.addEvent(event)
+                        scope.launch {
+                            EventRepository.addEvent(event)
+                            isLoading = false
+                            onSave()
+                        }
                     }
-
-                    isLoading = false
-                    onSave()
                 },
-                enabled = !isLoading && title.isNotBlank() && date.isNotBlank() && startTime.isNotBlank() && endTime.isNotBlank()
+                enabled = !isLoading && title.isNotBlank()
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -144,35 +160,16 @@ fun AddEditEventScreen(
                 maxLines = 4
             )
 
-            OutlinedTextField(
-                value = date,
-                onValueChange = { date = it },
-                label = { Text("Date (YYYY-MM-DD) *") },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("e.g., 2024-01-15") },
-                singleLine = true
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = startTime,
-                    onValueChange = { startTime = it },
-                    label = { Text("Start Time *") },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("e.g., 10:00") },
-                    singleLine = true
+            // Date/Time display
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-
-                OutlinedTextField(
-                    value = endTime,
-                    onValueChange = { endTime = it },
-                    label = { Text("End Time *") },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("e.g., 11:00") },
-                    singleLine = true
+            ) {
+                Text(
+                    text = eventDateTime.let { formatEventDateTime(it) } ?: "Select Date & Time",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(16.dp)
                 )
             }
 

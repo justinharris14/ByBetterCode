@@ -1,30 +1,11 @@
 
 import { Redirect } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 
 export default function Index() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  // If user is logged in, redirect based on role
-  if (user) {
-    if (user.role === 'admin') {
-      return <Redirect href="/(admin)/dashboard" />;
-    } else if (user.role === 'parent') {
-      return <Redirect href="/(parent)/dashboard" />;
-    }
-  }
-
-  // Default: go to login
+  // In demo mode, always redirect to login
+  // The login screen will handle role selection
   return <Redirect href="/login" />;
 }
 

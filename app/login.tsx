@@ -3,139 +3,74 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await signIn(email, password);
-      console.log('Login successful');
-    } catch (error: any) {
-      console.error('Login error:', error);
-      
-      let errorMessage = error.message || 'Invalid credentials';
-      
-      // Check for specific error messages
-      if (errorMessage.includes('Invalid login credentials')) {
-        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-      } else if (errorMessage.includes('Email not confirmed')) {
-        errorMessage = 'Please verify your email address before logging in. Check your inbox for the confirmation email.';
-      }
-      
-      Alert.alert('Login Failed', errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fillDemoCredentials = (role: 'admin' | 'parent') => {
+  const handleRoleSelection = (role: 'admin' | 'parent') => {
+    console.log(`Selected role: ${role}`);
+    
     if (role === 'admin') {
-      setEmail('admin@crecheconnect.com');
-      setPassword('admin123');
+      router.replace('/(admin)/dashboard');
     } else {
-      setEmail('thabo@example.com');
-      setPassword('parent123');
+      router.replace('/(parent)/dashboard');
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={commonStyles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.content}>
-          <Text style={styles.logo}>🏫</Text>
-          <Text style={styles.appName}>CrècheConnect</Text>
-          <Text style={styles.tagline}>Connecting Care, Building Trust</Text>
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.content}>
+        <Text style={styles.logo}>🏫</Text>
+        <Text style={styles.appName}>CrècheConnect</Text>
+        <Text style={styles.tagline}>Connecting Care, Building Trust</Text>
 
-          <View style={styles.form}>
-            <TextInput
-              style={commonStyles.input}
-              placeholder="Email"
-              placeholderTextColor={colors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              editable={!loading}
-            />
+        <View style={styles.form}>
+          <Text style={styles.selectTitle}>Select Your Role</Text>
+          <Text style={styles.selectSubtitle}>
+            Choose how you want to access the app
+          </Text>
 
-            <TextInput
-              style={commonStyles.input}
-              placeholder="Password"
-              placeholderTextColor={colors.textSecondary}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!loading}
-            />
-
-            <TouchableOpacity
-              style={[buttonStyles.primary, loading && styles.buttonDisabled]}
-              onPress={handleLogin}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>
-                {loading ? 'Signing In...' : 'Sign In'}
+          <TouchableOpacity
+            style={[buttonStyles.primary, styles.roleButton]}
+            onPress={() => handleRoleSelection('admin')}
+          >
+            <Text style={styles.roleIcon}>👩‍💼</Text>
+            <View style={styles.roleTextContainer}>
+              <Text style={styles.roleButtonTitle}>Admin Dashboard</Text>
+              <Text style={styles.roleButtonSubtitle}>
+                Manage children, attendance, events & more
               </Text>
-            </TouchableOpacity>
-
-            <View style={styles.demoSection}>
-              <Text style={styles.demoTitle}>Demo Accounts:</Text>
-              <View style={styles.demoButtons}>
-                <TouchableOpacity
-                  style={styles.demoButton}
-                  onPress={() => fillDemoCredentials('admin')}
-                  disabled={loading}
-                >
-                  <Text style={styles.demoButtonText}>👩‍💼 Admin</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.demoButton}
-                  onPress={() => fillDemoCredentials('parent')}
-                  disabled={loading}
-                >
-                  <Text style={styles.demoButtonText}>👨‍👩‍👧 Parent</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <TouchableOpacity
-                style={styles.setupLink}
-                onPress={() => router.push('/setup')}
-                disabled={loading}
-              >
-                <Text style={styles.setupLinkText}>
-                  Need to create demo accounts? Tap here
-                </Text>
-              </TouchableOpacity>
             </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[buttonStyles.primary, styles.roleButton, styles.parentButton]}
+            onPress={() => handleRoleSelection('parent')}
+          >
+            <Text style={styles.roleIcon}>👨‍👩‍👧</Text>
+            <View style={styles.roleTextContainer}>
+              <Text style={styles.roleButtonTitle}>Parent Dashboard</Text>
+              <Text style={styles.roleButtonSubtitle}>
+                View your children, attendance & payments
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>
+              ℹ️ Demo Mode: Authentication is temporarily disabled for testing
+            </Text>
           </View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -148,6 +83,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: colors.background,
   },
   logo: {
     fontSize: 80,
@@ -168,52 +104,60 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
   },
-  buttonText: {
+  selectTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  selectSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  roleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    minHeight: 100,
+  },
+  parentButton: {
+    backgroundColor: colors.secondary,
+  },
+  roleIcon: {
+    fontSize: 48,
+    marginRight: 16,
+  },
+  roleTextContainer: {
+    flex: 1,
+  },
+  roleButtonTitle: {
     color: colors.white,
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  roleButtonSubtitle: {
+    color: colors.white,
+    fontSize: 13,
+    opacity: 0.9,
   },
-  demoSection: {
-    marginTop: 32,
+  infoBox: {
+    marginTop: 24,
     padding: 16,
     backgroundColor: colors.card,
     borderRadius: 12,
-  },
-  demoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  demoButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 16,
-  },
-  demoButton: {
-    backgroundColor: colors.white,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: colors.border,
   },
-  demoButtonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  setupLink: {
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  setupLinkText: {
+  infoText: {
     fontSize: 13,
-    color: colors.primary,
-    textDecorationLine: 'underline',
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

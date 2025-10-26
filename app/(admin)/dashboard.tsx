@@ -1,17 +1,14 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
@@ -24,123 +21,142 @@ interface DashboardStats {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalChildren: 0,
-    totalEvents: 0,
-    paymentsDue: 0,
-    attendanceRate: 0,
-  });
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Mock data for demo mode
+  const [stats, setStats] = useState<DashboardStats>({
+    totalChildren: 12,
+    totalEvents: 3,
+    paymentsDue: 5,
+    attendanceRate: 92,
+  });
 
-  useEffect(() => {
-    loadDashboardStats();
-  }, []);
-
-  const loadDashboardStats = async () => {
-    try {
-      const [childrenRes, eventsRes, paymentsRes, attendanceRes] = await Promise.all([
-        supabase.from('children').select('child_id', { count: 'exact', head: true }),
-        supabase.from('events').select('event_id', { count: 'exact', head: true }),
-        supabase.from('payments').select('payment_id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('attendance').select('is_present'),
-      ]);
-
-      const totalPresent = attendanceRes.data?.filter(a => a.is_present).length || 0;
-      const totalRecords = attendanceRes.data?.length || 1;
-      const attendanceRate = (totalPresent / totalRecords) * 100;
-
-      setStats({
-        totalChildren: childrenRes.count || 0,
-        totalEvents: eventsRes.count || 0,
-        paymentsDue: paymentsRes.count || 0,
-        attendanceRate: Math.round(attendanceRate),
-      });
-    } catch (error) {
-      console.error('Error loading dashboard stats:', error);
-    }
-  };
-
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await loadDashboardStats();
-    setRefreshing(false);
+    console.log('Refreshing dashboard (demo mode)');
+    // Simulate refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
   };
 
-  const handleSignOut = async () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await signOut();
-          } catch (error) {
-            console.error('Sign out error:', error);
-          }
-        },
-      },
-    ]);
+  const handleSignOut = () => {
+    console.log('Signing out');
+    router.replace('/login');
   };
-
-  const menuItems = [
-    { title: 'Children', icon: 'person.2.fill', route: '/(admin)/children', color: colors.primary },
-    { title: 'Attendance', icon: 'checkmark.circle.fill', route: '/(admin)/attendance', color: colors.accent },
-    { title: 'Events', icon: 'calendar', route: '/(admin)/events', color: colors.secondary },
-    { title: 'Announcements', icon: 'megaphone.fill', route: '/(admin)/announcements', color: colors.highlight },
-    { title: 'Media', icon: 'photo.fill', route: '/(admin)/media', color: colors.primary },
-    { title: 'Payments', icon: 'creditcard.fill', route: '/(admin)/payments', color: colors.accent },
-  ];
 
   return (
     <View style={commonStyles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.name}>{user?.first_name} {user?.last_name}</Text>
+            <Text style={styles.greeting}>Welcome Back! 👋</Text>
+            <Text style={styles.subGreeting}>Admin Dashboard</Text>
           </View>
           <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
-            <IconSymbol name="rectangle.portrait.and.arrow.right" size={24} color={colors.accent} />
+            <IconSymbol name="exit.to.app" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.statsContainer}>
-          <View style={[styles.statCard, { backgroundColor: colors.primary }]}>
-            <Text style={styles.statNumber}>{stats.totalChildren}</Text>
+          <View style={[styles.statCard, styles.statCardPrimary]}>
+            <IconSymbol name="people" size={32} color={colors.white} />
+            <Text style={styles.statValue}>{stats.totalChildren}</Text>
             <Text style={styles.statLabel}>Total Children</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.secondary }]}>
-            <Text style={styles.statNumber}>{stats.totalEvents}</Text>
-            <Text style={styles.statLabel}>Events</Text>
+
+          <View style={[styles.statCard, styles.statCardSecondary]}>
+            <IconSymbol name="event" size={32} color={colors.white} />
+            <Text style={styles.statValue}>{stats.totalEvents}</Text>
+            <Text style={styles.statLabel}>Upcoming Events</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.accent }]}>
-            <Text style={styles.statNumber}>{stats.paymentsDue}</Text>
+
+          <View style={[styles.statCard, styles.statCardWarning]}>
+            <IconSymbol name="payment" size={32} color={colors.white} />
+            <Text style={styles.statValue}>{stats.paymentsDue}</Text>
             <Text style={styles.statLabel}>Payments Due</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.highlight }]}>
-            <Text style={styles.statNumber}>{stats.attendanceRate}%</Text>
-            <Text style={styles.statLabel}>Attendance</Text>
+
+          <View style={[styles.statCard, styles.statCardSuccess]}>
+            <IconSymbol name="check.circle" size={32} color={colors.white} />
+            <Text style={styles.statValue}>{stats.attendanceRate}%</Text>
+            <Text style={styles.statLabel}>Attendance Rate</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.menuGrid}>
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.menuItem, { backgroundColor: item.color }]}
-              onPress={() => router.push(item.route as any)}
-            >
-              <IconSymbol name={item.icon as any} size={32} color={colors.white} />
-              <Text style={styles.menuItemText}>{item.title}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.quickActions}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(admin)/children')}
+          >
+            <IconSymbol name="people" size={28} color={colors.primary} />
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Manage Children</Text>
+              <Text style={styles.actionSubtitle}>Add, edit or view children</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(admin)/attendance')}
+          >
+            <IconSymbol name="check.circle" size={28} color={colors.primary} />
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Mark Attendance</Text>
+              <Text style={styles.actionSubtitle}>Track daily attendance</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(admin)/events')}
+          >
+            <IconSymbol name="event" size={28} color={colors.primary} />
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Manage Events</Text>
+              <Text style={styles.actionSubtitle}>Create and schedule events</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(admin)/announcements')}
+          >
+            <IconSymbol name="notifications" size={28} color={colors.primary} />
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Announcements</Text>
+              <Text style={styles.actionSubtitle}>Post updates for parents</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(admin)/media')}
+          >
+            <IconSymbol name="photo.library" size={28} color={colors.primary} />
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Media Gallery</Text>
+              <Text style={styles.actionSubtitle}>Upload photos and videos</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.demoNotice}>
+          <Text style={styles.demoNoticeText}>
+            ℹ️ Demo Mode: Supabase integration is temporarily disabled
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -151,23 +167,22 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  content: {
-    padding: 20,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    padding: 20,
+    paddingTop: 60,
   },
   greeting: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  name: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: colors.text,
+  },
+  subGreeting: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   signOutButton: {
     padding: 8,
@@ -175,26 +190,43 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 24,
+    padding: 12,
+    gap: 12,
   },
   statCard: {
-    width: '48%',
+    flex: 1,
+    minWidth: '45%',
     padding: 20,
     borderRadius: 16,
-    marginBottom: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  statNumber: {
+  statCardPrimary: {
+    backgroundColor: colors.primary,
+  },
+  statCardSecondary: {
+    backgroundColor: colors.secondary,
+  },
+  statCardWarning: {
+    backgroundColor: '#FF9800',
+  },
+  statCardSuccess: {
+    backgroundColor: '#4CAF50',
+  },
+  statValue: {
     fontSize: 32,
     fontWeight: '700',
     color: colors.white,
-    marginBottom: 4,
+    marginTop: 12,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.white,
-    fontWeight: '600',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  quickActions: {
+    padding: 20,
   },
   sectionTitle: {
     fontSize: 20,
@@ -202,25 +234,39 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 16,
   },
-  menuGrid: {
+  actionCard: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  menuItem: {
-    width: '48%',
-    aspectRatio: 1,
-    borderRadius: 16,
-    padding: 20,
-    justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 12,
     marginBottom: 12,
   },
-  menuItemText: {
-    marginTop: 12,
+  actionTextContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  actionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.white,
+    color: colors.text,
+  },
+  actionSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  demoNotice: {
+    margin: 20,
+    padding: 16,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  demoNoticeText: {
+    fontSize: 13,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
 });

@@ -77,7 +77,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Sign in error:', error);
+        throw new Error(error.message || 'Invalid login credentials');
+      }
+      
       console.log('Sign in successful:', email);
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -100,16 +104,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, userData: Partial<User>) => {
     try {
+      console.log('Attempting to sign up:', email);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: userData,
+          data: {
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            phone: userData.phone,
+            role: userData.role || 'parent',
+          },
+          emailRedirectTo: 'https://natively.dev/email-confirmed'
         },
       });
 
-      if (error) throw error;
-      console.log('Sign up successful:', email);
+      if (error) {
+        console.error('Sign up error:', error);
+        throw new Error(error.message || 'Failed to create account');
+      }
+
+      if (data?.user) {
+        console.log('Sign up successful:', email);
+        return;
+      }
+
+      throw new Error('Failed to create account');
     } catch (error: any) {
       console.error('Sign up error:', error);
       throw error;

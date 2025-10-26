@@ -1,54 +1,38 @@
 
-import React, { useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Image } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { colors } from '@/styles/commonStyles';
 
 export default function Index() {
-  const { user, loading, session } = useAuth();
-
-  useEffect(() => {
-    console.log('Index - Loading:', loading, 'User:', user?.email, 'Role:', user?.role);
-  }, [loading, user]);
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <View style={[commonStyles.container, commonStyles.center]}>
-        <Text style={styles.logo}>🏫</Text>
-        <Text style={styles.appName}>CrècheConnect</Text>
-        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
-  if (!session || !user) {
-    return <Redirect href="/login" />;
+  // If user is logged in, redirect based on role
+  if (user) {
+    if (user.role === 'admin') {
+      return <Redirect href="/(admin)/dashboard" />;
+    } else if (user.role === 'parent') {
+      return <Redirect href="/(parent)/dashboard" />;
+    }
   }
 
-  if (user.role === 'admin') {
-    return <Redirect href="/(admin)/dashboard" />;
-  }
-
-  if (user.role === 'parent') {
-    return <Redirect href="/(parent)/dashboard" />;
-  }
-
+  // Default: go to login
   return <Redirect href="/login" />;
 }
 
 const styles = StyleSheet.create({
-  logo: {
-    fontSize: 80,
-    marginBottom: 16,
-  },
-  appName: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 24,
-  },
-  loader: {
-    marginTop: 20,
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
   },
 });

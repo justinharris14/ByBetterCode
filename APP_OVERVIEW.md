@@ -39,6 +39,7 @@ View-only access to their own data:
 app/
 ├── index.tsx                 # Entry point with auth redirect
 ├── login.tsx                 # Login screen
+├── setup.tsx                 # Demo account setup screen
 ├── _layout.tsx              # Root layout with AuthProvider
 ├── (admin)/                 # Admin routes
 │   ├── dashboard.tsx        # Admin dashboard
@@ -66,6 +67,7 @@ app/
 - Row-Level Security (RLS) ensures data isolation
 - Parents can only access their own children's data
 - Admins have full access to all data
+- Automatic user sync between auth.users and public.users
 
 ### Real-time Capabilities
 - Supabase Realtime for live updates
@@ -122,7 +124,43 @@ app/
 8. **media** - Photos and videos
 
 ## Setup Instructions
-See `SUPABASE_SETUP.md` for detailed setup instructions.
+
+### Quick Start
+
+1. **First Time Setup**: When you open the app for the first time, you'll be redirected to the Setup screen
+2. **Create Demo Accounts**: Click "Create Demo Accounts" to automatically create all demo users
+3. **Login**: Once setup is complete, use the demo credentials to login
+
+### Manual Setup (If Automatic Setup Fails)
+
+If the automatic setup doesn't work, you can manually create users in the Supabase Dashboard:
+
+1. Go to https://supabase.com/dashboard/project/bldlekwvgeatnqjwiowq
+2. Navigate to Authentication → Users
+3. Create users with the demo account credentials (see SETUP_INSTRUCTIONS.md for details)
+
+### Important Notes
+
+- **Email Verification**: By default, Supabase requires email verification. For development, you can disable this in Authentication → Settings
+- **Database Sync**: The app automatically syncs auth users with the public.users table via a database trigger
+- **Troubleshooting**: See SETUP_INSTRUCTIONS.md for detailed troubleshooting steps
+
+## Database Migrations
+
+The following migrations have been applied:
+
+1. **Initial Setup** (`supabase-setup.sql`): Creates all tables, RLS policies, and demo data
+2. **fix_user_creation_and_sync**: Fixes user creation conflicts and improves sync logic
+3. **update_demo_users_for_auth_sync**: Handles existing users and maintains foreign key relationships
+
+## How User Sync Works
+
+1. User signs up via `supabase.auth.signUp()`
+2. Record created in `auth.users`
+3. Trigger `on_auth_user_created` fires automatically
+4. Trigger checks if email exists in `public.users`
+5. If exists: Updates user_id and syncs all related records
+6. If not: Creates new user in `public.users`
 
 ## Future Enhancements
 - Stripe payment integration
@@ -142,6 +180,22 @@ See `SUPABASE_SETUP.md` for detailed setup instructions.
 - Responsive layouts for different screen sizes
 - Dark mode support (theme-aware)
 - Offline-first architecture ready
+
+## Troubleshooting
+
+### "Failed to create user: Database error creating new user"
+- **Fixed**: This error has been resolved with the updated database trigger
+- The trigger now handles email conflicts gracefully
+- See SETUP_INSTRUCTIONS.md for setup details
+
+### "Invalid login credentials"
+- Ensure demo accounts have been created (use Setup screen)
+- Check that email verification is disabled or emails are confirmed
+- Verify password is correct (case-sensitive)
+
+### "Email not confirmed"
+- Disable email confirmations in Supabase Dashboard → Authentication → Settings
+- Or manually confirm emails in the Dashboard
 
 ## License
 Proprietary - CrècheConnect

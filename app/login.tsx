@@ -12,9 +12,11 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 
 export default function LoginScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,17 @@ export default function LoginScreen() {
       console.log('Login successful');
     } catch (error: any) {
       console.error('Login error:', error);
-      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+      
+      let errorMessage = error.message || 'Invalid credentials';
+      
+      // Check for specific error messages
+      if (errorMessage.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (errorMessage.includes('Email not confirmed')) {
+        errorMessage = 'Please verify your email address before logging in. Check your inbox for the confirmation email.';
+      }
+      
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -109,6 +121,16 @@ export default function LoginScreen() {
                   <Text style={styles.demoButtonText}>👨‍👩‍👧 Parent</Text>
                 </TouchableOpacity>
               </View>
+              
+              <TouchableOpacity
+                style={styles.setupLink}
+                onPress={() => router.push('/setup')}
+                disabled={loading}
+              >
+                <Text style={styles.setupLinkText}>
+                  Need to create demo accounts? Tap here
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -147,7 +169,7 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   buttonText: {
-    color: colors.text,
+    color: colors.white,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -170,6 +192,7 @@ const styles = StyleSheet.create({
   demoButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    marginBottom: 16,
   },
   demoButton: {
     backgroundColor: colors.white,
@@ -183,5 +206,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     fontWeight: '600',
+  },
+  setupLink: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  setupLinkText: {
+    fontSize: 13,
+    color: colors.primary,
+    textDecorationLine: 'underline',
   },
 });

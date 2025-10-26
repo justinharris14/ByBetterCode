@@ -1,0 +1,60 @@
+[versions]
+kotlin = "1.9.22"
+androidApplication = "8.10.1"
+jetbrainsCompose = "1.6.10"
+sqldelight = "2.0.1"
+coroutines = "1.8.0"
+serialization = "1.6.3"
+ktor = "2.3.8"
+androidxCore = "1.12.0"
+appcompat = "1.6.1"
+material = "1.11.0"
+constraintlayout = "2.1.4"
+activityCompose = "1.8.2"
+composeUi = "1.6.0"
+composeMaterial3 = "1.2.1"
+navigationCompose = "2.7.6"
+firebaseAuth = "22.3.1"
+firebaseFirestore = "24.10.3"
+firebaseMessaging = "23.4.1"
+firebaseAnalytics = "21.5.1"
+junit = "4.13.2"
+androidxTestJunit = "1.1.5"
+espressoCore = "3.5.1"
+
+[libraries]
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
+sqldelight-coroutines-extensions = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
+sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+google-android-material = { module = "com.google.android.material:material", version.ref = "material" }
+androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "composeUi" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "composeMaterial3" }
+androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "composeUi" }
+androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "composeUi" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+firebase-auth = { module = "com.google.firebase:firebase-auth", version.ref = "firebaseAuth" }
+firebase-firestore = { module = "com.google.firebase:firebase-firestore", version.ref = "firebaseFirestore" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebaseMessaging" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
+junit = { module = "junit:junit", version.ref = "junit" }
+androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestJunit" }
+androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espressoCore" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "androidApplication" }
+jetbrains-kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+jetbrains-compose = { id = "org.jetbrains.compose", version.ref = "jetbrainsCompose" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

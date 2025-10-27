@@ -12,7 +12,15 @@ import androidx.compose.ui.unit.sp
 import com.crecheconnect.model.Event
 import com.crecheconnect.service.EventRepository
 import kotlinx.coroutines.launch
-import kotlinx.datetime.*
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+
+// Helper function to format datetime for display
+fun formatEventDateTime(instant: Instant): String {
+    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    return "${dateTime.date} at ${dateTime.time}"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,19 +31,9 @@ fun AddEditEventScreen(
 ) {
     var title by remember { mutableStateOf(eventToEdit?.title ?: "") }
     var description by remember { mutableStateOf(eventToEdit?.description ?: "") }
-    var selectedDate by remember {
+    var eventDateTime by remember {
         mutableStateOf(
-            eventToEdit?.date ?: Clock.System.todayIn(TimeZone.currentSystemDefault())
-        )
-    }
-    var startTime by remember {
-        mutableStateOf(
-            eventToEdit?.startTime ?: LocalTime(9, 0)
-        )
-    }
-    var endTime by remember {
-        mutableStateOf(
-            eventToEdit?.endTime ?: LocalTime(10, 0)
+            eventToEdit?.eventDateTime ?: kotlinx.datetime.Instant.fromEpochMilliseconds(System.currentTimeMillis())
         )
     }
     var isLoading by remember { mutableStateOf(false) }
@@ -84,9 +82,11 @@ fun AddEditEventScreen(
                         id = eventToEdit?.id,
                         title = title.trim(),
                         description = description.trim().takeIf { it.isNotBlank() },
-                        date = selectedDate,
-                        startTime = startTime,
-                        endTime = endTime,
+                        eventDateTime = eventDateTime,
+                        eventID = eventToEdit?.eventID ?: java.util.UUID.randomUUID().toString(),
+                        Date = eventToEdit?.Date ?: "",
+                        createByID = eventToEdit?.createByID ?: "uuidOfAdmin",
+                        createdAt = eventToEdit?.createdAt ?: kotlinx.datetime.Instant.fromEpochMilliseconds(System.currentTimeMillis()),
                         createdBy = 1 // In real app, get from current user
                     )
 
@@ -160,63 +160,16 @@ fun AddEditEventScreen(
                 maxLines = 4
             )
 
-            // Date display (read-only, selected from calendar)
+            // Date/Time display
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             ) {
                 Text(
-                    text = selectedDate.toString(),
+                    text = eventDateTime.let { formatEventDateTime(it) } ?: "Select Date & Time",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(16.dp)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = startTime.toString(),
-                    onValueChange = {
-                        try {
-                            val parts = it.split(":")
-                            if (parts.size == 2) {
-                                val hour = parts[0].toIntOrNull() ?: startTime.hour
-                                val minute = parts[1].toIntOrNull() ?: startTime.minute
-                                startTime = LocalTime(hour, minute)
-                            }
-                        } catch (e: Exception) {
-                            // Invalid time format, keep current value
-                        }
-                    },
-                    label = { Text("Start Time *") },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("HH:MM") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-                )
-
-                OutlinedTextField(
-                    value = endTime.toString(),
-                    onValueChange = {
-                        try {
-                            val parts = it.split(":")
-                            if (parts.size == 2) {
-                                val hour = parts[0].toIntOrNull() ?: endTime.hour
-                                val minute = parts[1].toIntOrNull() ?: endTime.minute
-                                endTime = LocalTime(hour, minute)
-                            }
-                        } catch (e: Exception) {
-                            // Invalid time format, keep current value
-                        }
-                    },
-                    label = { Text("End Time *") },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("HH:MM") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                 )
             }
 

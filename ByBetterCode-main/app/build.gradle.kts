@@ -71,7 +71,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material")
     implementation("androidx.compose.material:material-icons-core")
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.compose.material:material-icons-extended:1.6.8")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.runtime:runtime-livedata")
@@ -85,6 +85,9 @@ dependencies {
 
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
+
+    // Security (from second block)
+    implementation("androidx.security:security-crypto:1.1.0")
 
     // KotlinX + Networking
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
@@ -106,8 +109,13 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-analytics")
 
-    // Kotlin datetime
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
+    // Firebase KTX extensions for Kotlin
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-common-ktx")
+
+    // Kotlin datetime (kept latest version 0.5.0)
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
 
     // Testing
     testImplementation(libs.junit)
@@ -115,6 +123,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 }
+
 
 sqldelight {
     databases {

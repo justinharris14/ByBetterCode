@@ -21,6 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Refresh
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun CalendarView(
@@ -124,17 +127,10 @@ fun CalendarView(
     }
 }
 
-// Helper function to format sync time
-fun formatSyncTime(timestamp: Long): String {
-    val currentTime = System.currentTimeMillis()
-    val diffMinutes = (currentTime - timestamp) / (1000 * 60)
-
-    return when {
-        diffMinutes < 1 -> "just now"
-        diffMinutes < 60 -> "$diffMinutes minutes ago"
-        diffMinutes < 1440 -> "${diffMinutes / 60} hours ago"
-        else -> "${diffMinutes / 1440} days ago"
-    }
+// Helper function to format datetime for display
+fun formatDateTime(instant: Instant): String {
+    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    return "${dateTime.date} at ${dateTime.time}"
 }
 
 @Composable
@@ -165,7 +161,7 @@ fun EventCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${event.date} • ${event.startTime} - ${event.endTime}",
+                        text = event.eventDateTime?.let { formatDateTime(it) } ?: "No Date",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

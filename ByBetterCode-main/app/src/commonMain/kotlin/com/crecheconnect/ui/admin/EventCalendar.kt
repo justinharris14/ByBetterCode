@@ -18,10 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.datetime.Clock
-import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
+import kotlinx.datetime.*
 
 data class CalendarDay(
     val date: LocalDate,
@@ -67,7 +64,10 @@ fun EventCalendar(
         // Add current month days
         for (day in 1..daysInMonth) {
             val date = LocalDate(selectedDate.year, selectedDate.month, day)
-            val dayEvents = events.filter { it.date == date }
+            val dayEvents = events.filter { it.eventDateTime?.let { eventDateTime ->
+                val eventLocalDateTime = eventDateTime.toLocalDateTime(TimeZone.currentSystemDefault())
+                eventLocalDateTime.date.toString() == date.toString()
+            } == true }
             days.add(CalendarDay(
                 date = date,
                 isCurrentMonth = true,

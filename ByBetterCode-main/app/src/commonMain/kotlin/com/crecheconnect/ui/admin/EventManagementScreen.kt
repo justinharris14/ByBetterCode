@@ -27,6 +27,12 @@ import com.crecheconnect.service.EventRepository
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 
+// Helper function to format datetime for display
+fun formatEventDateTime(instant: Instant): String {
+    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    return "${dateTime.date} at ${dateTime.time}"
+}
+
 @Preview
 @Composable
 fun EventManagementScreen(
@@ -39,7 +45,7 @@ fun EventManagementScreen(
     val scope = rememberCoroutineScope()
 
     // Calendar state
-    var selectedDate by remember { mutableStateOf(Clock.System.todayIn(TimeZone.currentSystemDefault())) }
+    var selectedDate by remember { mutableStateOf(LocalDate(2024, 1, 15)) } // Temporary date - should use today
     var showEventDialog by remember { mutableStateOf(false) }
     var selectedEvent by remember { mutableStateOf<Event?>(null) }
 
@@ -145,13 +151,18 @@ fun EventManagementScreen(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "Events for ${selectedDate.dayOfMonth.toString().padStart(2, '0')}/${selectedDate.monthNumber.toString().padStart(2, '0')}/${selectedDate.year}",
+                    text = "Events for ${selectedDate}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                val dayEvents = events.filter { event -> event.date == selectedDate }
+                val dayEvents = events.filter { event ->
+                    event.eventDateTime?.let { eventDateTime ->
+                        val eventLocalDateTime = eventDateTime.toLocalDateTime(TimeZone.currentSystemDefault())
+                        eventLocalDateTime.date.toString() == selectedDate.toString()
+                    } == true
+                }
 
                 if (dayEvents.isEmpty()) {
                     Box(
@@ -192,7 +203,7 @@ fun EventManagementScreen(
     // Event Dialog
     if (showEventDialog) {
         EventDialog(
-            selectedDate = selectedDate,
+            selectedDate = selectedDate.toString(),
             event = selectedEvent,
             onSave = { newEvent ->
                 scope.launch {
@@ -251,7 +262,7 @@ fun EventItem(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${event.date} • ${event.startTime} - ${event.endTime}",
+                    text = event.eventDateTime?.let { formatEventDateTime(it) } ?: "No Date",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

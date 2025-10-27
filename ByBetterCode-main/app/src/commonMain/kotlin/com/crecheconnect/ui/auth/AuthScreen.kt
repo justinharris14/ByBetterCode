@@ -28,7 +28,7 @@ fun AuthScreen(
     var phone by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val useFakeAuth = true
+    val useFakeAuth = false
     val scope = rememberCoroutineScope()
     val auth = Firebase.auth
 

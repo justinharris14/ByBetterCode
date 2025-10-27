@@ -15,11 +15,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.crecheconnect.model.Event
-import kotlinx.datetime.*
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun EventDialog(
-    selectedDate: LocalDate,
+    selectedDate: String,
     event: Event? = null,
     onSave: (Event) -> Unit,
     onDelete: (Event) -> Unit,
@@ -27,16 +29,9 @@ fun EventDialog(
 ) {
     var title by remember { mutableStateOf(event?.title ?: "") }
     var description by remember { mutableStateOf(event?.description ?: "") }
-    var startTime by remember {
+    var eventDateTime by remember {
         mutableStateOf(
-            event?.startTime?.let { LocalTime(it.hour, it.minute) }
-                ?: LocalTime(9, 0)
-        )
-    }
-    var endTime by remember {
-        mutableStateOf(
-            event?.endTime?.let { LocalTime(it.hour, it.minute) }
-                ?: LocalTime(10, 0)
+            event?.eventDateTime ?: kotlinx.datetime.Instant.fromEpochMilliseconds(System.currentTimeMillis())
         )
     }
 
@@ -119,49 +114,16 @@ fun EventDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Time inputs
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = startTime.toString(),
-                        onValueChange = {
-                            try {
-                                val parts = it.split(":")
-                                if (parts.size == 2) {
-                                    val hour = parts[0].toIntOrNull() ?: startTime.hour
-                                    val minute = parts[1].toIntOrNull() ?: startTime.minute
-                                    startTime = LocalTime(hour, minute)
-                                }
-                            } catch (e: Exception) {
-                                // Invalid time format, keep current value
-                            }
-                        },
-                        label = { Text("Start Time") },
-                        modifier = Modifier.weight(1f),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                        placeholder = { Text("HH:MM") }
+                // Date/Time display
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
-
-                    OutlinedTextField(
-                        value = endTime.toString(),
-                        onValueChange = {
-                            try {
-                                val parts = it.split(":")
-                                if (parts.size == 2) {
-                                    val hour = parts[0].toIntOrNull() ?: endTime.hour
-                                    val minute = parts[1].toIntOrNull() ?: endTime.minute
-                                    endTime = LocalTime(hour, minute)
-                                }
-                            } catch (e: Exception) {
-                                // Invalid time format, keep current value
-                            }
-                        },
-                        label = { Text("End Time") },
-                        modifier = Modifier.weight(1f),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                        placeholder = { Text("HH:MM") }
+                ) {
+                    Text(
+                        text = formatEventDateTime(eventDateTime),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(16.dp)
                     )
                 }
 
@@ -178,16 +140,20 @@ fun EventDialog(
                                 val newEvent = event?.copy(
                                     title = title,
                                     description = description.ifBlank { null },
-                                    date = selectedDate,
-                                    startTime = startTime,
-                                    endTime = endTime
+                                    eventDateTime = eventDateTime,
+                                    eventID = event.eventID,
+                                    Date = event.Date,
+                                    createByID = event.createByID,
+                                    createdAt = event.createdAt
                                 ) ?: Event(
                                     title = title,
                                     description = description.ifBlank { null },
-                                    date = selectedDate,
-                                    startTime = startTime,
-                                    endTime = endTime,
-                                    createdBy = 1L // In real app, get from current user
+                                    eventDateTime = eventDateTime,
+                                    eventID = java.util.UUID.randomUUID().toString(),
+                                    Date = "",
+                                    createByID = "uuidOfAdmin",
+                                    createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(System.currentTimeMillis()),
+                                    createdBy = 1L
                                 )
                                 onSave(newEvent)
                                 onDismiss()

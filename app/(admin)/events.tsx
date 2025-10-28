@@ -16,6 +16,17 @@ import { Event } from '@/types/database.types';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
+import * as Notifications from 'expo-notifications';
+
+// Configure notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export default function EventsScreen() {
   const { user } = useAuth();
@@ -31,7 +42,19 @@ export default function EventsScreen() {
 
   useEffect(() => {
     loadEvents();
+    requestNotificationPermissions();
   }, []);
+
+  const requestNotificationPermissions = async () => {
+    try {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Notification permissions not granted');
+      }
+    } catch (error) {
+      console.error('Error requesting notification permissions:', error);
+    }
+  };
 
   const loadEvents = async () => {
     try {
@@ -65,6 +88,123 @@ export default function EventsScreen() {
     setModalVisible(true);
   };
 
+  const sendNotificationsToAllParents = async (event: Event) => {
+    try {
+      console.log('Sending notifications to all parents for event:', event.title);
+
+      // Get all parents
+      const { data: parents, error: parentsError } = await supabase
+        .from('users')
+        .select('user_id, first_name, last_name')
+        .eq('role', 'parent')
+        .eq('is_active', true);
+
+      if (parentsError) {
+        console.error('Error fetching parents:', parentsError);
+        return;
+      }
+
+      if (!parents || parents.length === 0) {
+        console.log('No parents found to notify');
+        return;
+      }
+
+      console.log(`Found ${parents.length} parents to notify`);
+
+      // Create event notifications for all parents
+      const notifications = parents.map(parent => ({
+        event_id: event.event_id,
+        parent_id: parent.user_id,
+        is_read: false,
+      }));
+
+      const { error: notificationError } = await supabase
+        .from('event_notifications')
+        .insert(notifications);
+
+      if (notificationError) {
+        console.error('Error creating event notifications:', notificationError);
+        return;
+      }
+
+      console.log(`Successfully created ${notifications.length} event notifications`);
+
+      // Schedule local notifications for all parents
+      const eventDate = new Date(event.event_datetime);
+      const formattedDate = eventDate.toLocaleDateString('en-ZA', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const formattedTime = eventDate.toLocaleTimeString('en-ZA', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      // Schedule immediate notification
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '📅 New Event: ' + event.title,
+          body: `${event.description || 'No description'}\n📆 ${formattedDate} at ${formattedTime}`,
+          data: { 
+            eventId: event.event_id,
+            type: 'event',
+            url: '/(parent)/events',
+          },
+          sound: true,
+        },
+        trigger: null, // Send immediately
+      });
+
+      // Schedule reminder 1 day before the event
+      const oneDayBefore = new Date(eventDate.getTime() - 24 * 60 * 60 * 1000);
+      if (oneDayBefore > new Date()) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '⏰ Event Reminder: ' + event.title,
+            body: `Tomorrow at ${formattedTime}`,
+            data: { 
+              eventId: event.event_id,
+              type: 'event_reminder',
+              url: '/(parent)/events',
+            },
+            sound: true,
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: oneDayBefore,
+          },
+        });
+      }
+
+      // Schedule reminder 1 hour before the event
+      const oneHourBefore = new Date(eventDate.getTime() - 60 * 60 * 1000);
+      if (oneHourBefore > new Date()) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '🔔 Event Starting Soon: ' + event.title,
+            body: `Starts in 1 hour`,
+            data: { 
+              eventId: event.event_id,
+              type: 'event_reminder',
+              url: '/(parent)/events',
+            },
+            sound: true,
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: oneHourBefore,
+          },
+        });
+      }
+
+      console.log('Notifications scheduled successfully');
+    } catch (error) {
+      console.error('Error sending notifications:', error);
+    }
+  };
+
   const handleSave = async () => {
     if (!formData.title || !formData.event_datetime) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -72,15 +212,34 @@ export default function EventsScreen() {
     }
 
     try {
-      const { error } = await supabase
+      // Validate date format
+      const eventDate = new Date(formData.event_datetime);
+      if (isNaN(eventDate.getTime())) {
+        Alert.alert('Error', 'Invalid date format. Please use YYYY-MM-DD HH:MM');
+        return;
+      }
+
+      const { data, error } = await supabase
         .from('events')
         .insert([{
           ...formData,
           created_by_id: user?.user_id || '',
-        }]);
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
-      Alert.alert('Success', 'Event created successfully');
+
+      // Send notifications to all parents
+      if (data) {
+        await sendNotificationsToAllParents(data);
+      }
+
+      Alert.alert(
+        'Success', 
+        'Event created successfully! All parents have been notified.',
+        [{ text: 'OK' }]
+      );
       setModalVisible(false);
       loadEvents();
     } catch (error) {
@@ -100,6 +259,13 @@ export default function EventsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Delete event notifications first
+              await supabase
+                .from('event_notifications')
+                .delete()
+                .eq('event_id', event.event_id);
+
+              // Delete the event
               const { error } = await supabase
                 .from('events')
                 .delete()
@@ -198,7 +364,7 @@ export default function EventsScreen() {
                 style={[buttonStyles.primary, styles.modalButton]}
                 onPress={handleSave}
               >
-                <Text style={styles.saveButtonText}>Create</Text>
+                <Text style={styles.saveButtonText}>Create & Notify</Text>
               </TouchableOpacity>
             </View>
           </View>

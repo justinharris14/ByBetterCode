@@ -6,19 +6,50 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  TouchableOpacity,
+  Alert,
+  Platform,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 import { Event } from '@/types/database.types';
 import { IconSymbol } from '@/components/IconSymbol';
+import * as Calendar from 'expo-calendar';
+import * as Notifications from 'expo-notifications';
 
 export default function ParentEventsScreen() {
   const [events, setEvents] = useState<Event[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [calendarPermission, setCalendarPermission] = useState(false);
 
   useEffect(() => {
     loadEvents();
+    checkCalendarPermissions();
+    requestNotificationPermissions();
   }, []);
+
+  const checkCalendarPermissions = async () => {
+    const { status } = await Calendar.getCalendarPermissionsAsync();
+    setCalendarPermission(status === 'granted');
+  };
+
+  const requestNotificationPermissions = async () => {
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      
+      if (finalStatus !== 'granted') {
+        console.log('Notification permissions not granted');
+      }
+    } catch (error) {
+      console.error('Error requesting notification permissions:', error);
+    }
+  };
 
   const loadEvents = async () => {
     try {
@@ -73,6 +104,84 @@ export default function ParentEventsScreen() {
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Tomorrow';
     return `In ${diffDays} days`;
+  };
+
+  const addToCalendar = async (event: Event) => {
+    try {
+      // Request calendar permissions
+      const { status } = await Calendar.requestCalendarPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Calendar permission is required to add events to your calendar.'
+        );
+        return;
+      }
+
+      // Get the default calendar or create one
+      let calendarId: string;
+      
+      if (Platform.OS === 'ios') {
+        const defaultCalendar = await Calendar.getDefaultCalendarAsync();
+        calendarId = defaultCalendar.id;
+      } else {
+        // Android - get or create calendar
+        const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+        const appCalendar = calendars.find(cal => cal.title === 'CrècheConnect');
+        
+        if (appCalendar) {
+          calendarId = appCalendar.id;
+        } else {
+          // Create a new calendar
+          const defaultCalendarSource = {
+            isLocalAccount: true,
+            name: 'CrècheConnect',
+            type: Calendar.SourceType.LOCAL,
+          };
+          
+          calendarId = await Calendar.createCalendarAsync({
+            title: 'CrècheConnect',
+            color: colors.primary,
+            entityType: Calendar.EntityTypes.EVENT,
+            sourceId: defaultCalendarSource.name,
+            source: defaultCalendarSource,
+            name: 'CrècheConnect',
+            ownerAccount: 'personal',
+            accessLevel: Calendar.CalendarAccessLevel.OWNER,
+          });
+        }
+      }
+
+      // Create the event
+      const eventDate = new Date(event.event_datetime);
+      const endDate = new Date(eventDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+
+      const eventId = await Calendar.createEventAsync(calendarId, {
+        title: event.title,
+        notes: event.description || '',
+        startDate: eventDate,
+        endDate: endDate,
+        timeZone: 'Africa/Johannesburg',
+        alarms: [
+          { relativeOffset: -60 }, // 1 hour before
+          { relativeOffset: -1440 }, // 1 day before
+        ],
+      });
+
+      console.log('Event added to calendar:', eventId);
+      Alert.alert(
+        'Success',
+        'Event has been added to your calendar!',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error adding event to calendar:', error);
+      Alert.alert(
+        'Error',
+        'Failed to add event to calendar. Please try again.'
+      );
+    }
   };
 
   return (
@@ -131,6 +240,14 @@ export default function ParentEventsScreen() {
                       <Text style={styles.eventDetailText}>{time}</Text>
                     </View>
                   </View>
+
+                  <TouchableOpacity
+                    style={[buttonStyles.primary, styles.addToCalendarButton]}
+                    onPress={() => addToCalendar(event)}
+                  >
+                    <IconSymbol name="calendar.badge.plus" size={20} color={colors.text} />
+                    <Text style={styles.addToCalendarText}>Add to Calendar</Text>
+                  </TouchableOpacity>
                 </View>
               );
             })}
@@ -233,6 +350,7 @@ const styles = StyleSheet.create({
   },
   eventDetails: {
     gap: 8,
+    marginBottom: 16,
   },
   eventDetailRow: {
     flexDirection: 'row',
@@ -242,5 +360,17 @@ const styles = StyleSheet.create({
   eventDetailText: {
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  addToCalendarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  addToCalendarText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
   },
 });

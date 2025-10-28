@@ -8,8 +8,10 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '@/lib/supabase';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
@@ -255,6 +257,31 @@ export default function ParentDashboard() {
     ]);
   };
 
+  const handlePayment = async (paymentType: 'meal' | 'tuition') => {
+    const paymentUrls = {
+      meal: 'https://buy.stripe.com/test_bJe00ccYJdNb2Jx5zy7g401',
+      tuition: 'https://buy.stripe.com/test_8x24gsf6R10p3NB7HG7g400',
+    };
+
+    const paymentNames = {
+      meal: 'Weekly Meal Plan',
+      tuition: 'Tuition Fee',
+    };
+
+    try {
+      console.log(`Opening ${paymentNames[paymentType]} payment page...`);
+      const result = await WebBrowser.openBrowserAsync(paymentUrls[paymentType]);
+      console.log('Browser result:', result);
+    } catch (error) {
+      console.error('Error opening payment page:', error);
+      Alert.alert(
+        'Error',
+        'Unable to open payment page. Please try again later.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-ZA', {
@@ -299,6 +326,46 @@ export default function ParentDashboard() {
             <IconSymbol name="bell.fill" size={32} color={colors.accent} />
             <Text style={styles.statValue}>{stats.unreadNotifications}</Text>
             <Text style={styles.statLabel}>Unread</Text>
+          </View>
+        </View>
+
+        {/* Payments Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>💳 Payments</Text>
+          <View style={styles.paymentContainer}>
+            <TouchableOpacity
+              style={styles.paymentCard}
+              onPress={() => handlePayment('meal')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.paymentIconContainer}>
+                <IconSymbol name="fork.knife" size={32} color={colors.white} />
+              </View>
+              <View style={styles.paymentContent}>
+                <Text style={styles.paymentTitle}>Weekly Meal Plan</Text>
+                <Text style={styles.paymentDescription}>
+                  Pay for your child&apos;s weekly meals
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.paymentCard}
+              onPress={() => handlePayment('tuition')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.paymentIconContainer, styles.tuitionIcon]}>
+                <IconSymbol name="graduationcap.fill" size={32} color={colors.white} />
+              </View>
+              <View style={styles.paymentContent}>
+                <Text style={styles.paymentTitle}>Tuition Fee</Text>
+                <Text style={styles.paymentDescription}>
+                  Pay monthly tuition fees
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -366,6 +433,9 @@ export default function ParentDashboard() {
             <Text style={styles.emptySubtext}>You&apos;re all caught up!</Text>
           </View>
         )}
+
+        {/* Add bottom padding to prevent content from being hidden by tab bar */}
+        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -431,6 +501,46 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 16,
+  },
+  paymentContainer: {
+    gap: 12,
+  },
+  paymentCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  paymentIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  tuitionIcon: {
+    backgroundColor: colors.primary,
+  },
+  paymentContent: {
+    flex: 1,
+  },
+  paymentTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  paymentDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   notificationCard: {
     backgroundColor: colors.card,

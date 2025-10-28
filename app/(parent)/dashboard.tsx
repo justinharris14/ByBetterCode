@@ -277,12 +277,29 @@ export default function ParentDashboard() {
     ]);
   };
 
-  const handlePayment = async () => {
+  const handleTuitionPayment = async () => {
     const tuitionUrl = 'https://buy.stripe.com/test_8x24gsf6R10p3NB7HG7g400';
 
     try {
       console.log('Opening Tuition Fee payment page...');
       const result = await WebBrowser.openBrowserAsync(tuitionUrl);
+      console.log('Browser result:', result);
+    } catch (error) {
+      console.error('Error opening payment page:', error);
+      Alert.alert(
+        'Error',
+        'Unable to open payment page. Please try again later.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleWeeklyMealPayment = async () => {
+    const weeklyMealUrl = 'https://buy.stripe.com/test_weekly_meal_url_here';
+
+    try {
+      console.log('Opening Weekly Meal payment page...');
+      const result = await WebBrowser.openBrowserAsync(weeklyMealUrl);
       console.log('Browser result:', result);
     } catch (error) {
       console.error('Error opening payment page:', error);
@@ -364,7 +381,7 @@ export default function ParentDashboard() {
 
           <TouchableOpacity
             style={styles.paymentCard}
-            onPress={handlePayment}
+            onPress={handleTuitionPayment}
             activeOpacity={0.7}
           >
             <View style={styles.paymentIconContainer}>
@@ -374,6 +391,23 @@ export default function ParentDashboard() {
               <Text style={styles.paymentTitle}>Tuition Fee</Text>
               <Text style={styles.paymentDescription}>
                 Pay monthly tuition fees
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.paymentCard, styles.weeklyMealPaymentCard]}
+            onPress={handleWeeklyMealPayment}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.paymentIconContainer, styles.weeklyMealIconContainer]}>
+              <IconSymbol name="fork.knife" size={32} color={colors.white} />
+            </View>
+            <View style={styles.paymentContent}>
+              <Text style={styles.paymentTitle}>Weekly Meals</Text>
+              <Text style={styles.paymentDescription}>
+                Pay for weekly meal plan
               </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
@@ -519,11 +553,15 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  weeklyMealPaymentCard: {
+    marginBottom: 0,
   },
   paymentIconContainer: {
     width: 56,
@@ -533,6 +571,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+  },
+  weeklyMealIconContainer: {
+    backgroundColor: colors.secondary,
   },
   paymentContent: {
     flex: 1,

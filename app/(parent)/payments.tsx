@@ -139,7 +139,7 @@ export default function ParentPaymentsScreen() {
 
       // For mobile, download the file
       const filename = `receipt_${payment.payment_id}.pdf`;
-      const fileUri = (FileSystem.documentDirectory || '') + filename;
+      const fileUri = `${FileSystem.documentDirectory ?? ''}${filename}`;
 
       Alert.alert('Downloading', 'Downloading receipt...');
 
@@ -176,11 +176,22 @@ export default function ParentPaymentsScreen() {
     }
   };
 
-  const handleMakePayment = async () => {
+  const handleTuitionPayment = async () => {
     const tuitionUrl = 'https://buy.stripe.com/test_8x24gsf6R10p3NB7HG7g400';
 
     try {
       await WebBrowser.openBrowserAsync(tuitionUrl);
+    } catch (error) {
+      console.error('Error opening payment page:', error);
+      Alert.alert('Error', 'Unable to open payment page. Please try again.');
+    }
+  };
+
+  const handleWeeklyMealPayment = async () => {
+    const weeklyMealUrl = 'https://buy.stripe.com/test_weekly_meal_url_here';
+
+    try {
+      await WebBrowser.openBrowserAsync(weeklyMealUrl);
     } catch (error) {
       console.error('Error opening payment page:', error);
       Alert.alert('Error', 'Unable to open payment page. Please try again.');
@@ -294,12 +305,21 @@ export default function ParentPaymentsScreen() {
         {/* Quick Payment Actions */}
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Quick Payment</Text>
+          
           <TouchableOpacity
             style={styles.quickActionCard}
-            onPress={handleMakePayment}
+            onPress={handleTuitionPayment}
           >
             <IconSymbol name="graduationcap.fill" size={32} color={colors.white} />
             <Text style={styles.quickActionText}>Pay Tuition Fee</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickActionCard, styles.weeklyMealCard]}
+            onPress={handleWeeklyMealPayment}
+          >
+            <IconSymbol name="fork.knife" size={32} color={colors.white} />
+            <Text style={styles.quickActionText}>Pay Weekly Meals</Text>
           </TouchableOpacity>
         </View>
 
@@ -365,11 +385,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 120,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  weeklyMealCard: {
+    backgroundColor: colors.secondary,
   },
   quickActionText: {
     fontSize: 18,

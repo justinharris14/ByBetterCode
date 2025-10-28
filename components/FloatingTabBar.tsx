@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   View,
@@ -37,8 +38,8 @@ interface FloatingTabBarProps {
 
 export default function FloatingTabBar({
   tabs,
-  containerWidth = 240,
-  borderRadius = 25,
+  containerWidth = screenWidth - 40,
+  borderRadius = 30,
   bottomMargin
 }: FloatingTabBarProps) {
   const router = useRouter();
@@ -96,10 +97,8 @@ export default function FloatingTabBar({
     router.push(route);
   };
 
-  // Remove unnecessary tabBarStyle animation to prevent flickering
-
   const indicatorStyle = useAnimatedStyle(() => {
-    const tabWidth = (containerWidth - 16) / tabs.length; // Account for container padding (8px on each side)
+    const tabWidth = (containerWidth - 20) / tabs.length; // Account for container padding (10px on each side)
     return {
       transform: [
         {
@@ -184,7 +183,7 @@ export default function FloatingTabBar({
                   <View style={styles.tabContent}>
                     <IconSymbol
                       name={tab.icon}
-                      size={24}
+                      size={32}
                       color={isActive ? theme.colors.primary : (theme.dark ? '#98989D' : '#8E8E93')}
                     />
                     <Text
@@ -231,34 +230,34 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    bottom: 8,
-    borderRadius: 17,
+    top: 10,
+    left: 10,
+    bottom: 10,
+    borderRadius: 22,
     width: `${(100 / 2) - 3}%`, // Default for 2 tabs, will be overridden by dynamic styles
     // Dynamic styling applied in component
   },
   tabsContainer: {
     flexDirection: 'row',
-    height: 60,
+    height: 85,
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: 4,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 4,
     // Dynamic styling applied in component
   },
 });

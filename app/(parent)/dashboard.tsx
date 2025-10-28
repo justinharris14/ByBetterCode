@@ -1,10 +1,4 @@
 
-import { supabase } from '@/lib/supabase';
-import { IconSymbol } from '@/components/IconSymbol';
-import { useAuth } from '@/contexts/AuthContext';
-import { AbsenceNotification } from '@/types/database.types';
-import { colors, commonStyles } from '@/styles/commonStyles';
-import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -15,6 +9,12 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+import { IconSymbol } from '@/components/IconSymbol';
+import { useAuth } from '@/contexts/AuthContext';
+import { AbsenceNotification } from '@/types/database.types';
+import { colors, commonStyles } from '@/styles/commonStyles';
 
 interface ParentStats {
   childrenCount: number;
@@ -45,7 +45,8 @@ export default function ParentDashboard() {
   const [absenceNotifications, setAbsenceNotifications] = useState<AbsenceNotification[]>([]);
   const [eventNotifications, setEventNotifications] = useState<EventNotification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const subscriptionRef = useRef<any>(null);
+  const absenceChannelRef = useRef<any>(null);
+  const eventChannelRef = useRef<any>(null);
 
   useEffect(() => {
     if (user) {
@@ -55,8 +56,16 @@ export default function ParentDashboard() {
     }
 
     return () => {
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
+      // Proper cleanup using supabase.removeChannel
+      if (absenceChannelRef.current) {
+        console.log('Cleaning up absence channel');
+        supabase.removeChannel(absenceChannelRef.current);
+        absenceChannelRef.current = null;
+      }
+      if (eventChannelRef.current) {
+        console.log('Cleaning up event channel');
+        supabase.removeChannel(eventChannelRef.current);
+        eventChannelRef.current = null;
       }
     };
   }, [user]);
@@ -65,6 +74,12 @@ export default function ParentDashboard() {
     if (!user) return;
 
     console.log('Setting up realtime subscription for parent:', user.user_id);
+
+    // Check if already subscribed to prevent multiple subscriptions
+    if (absenceChannelRef.current?.state === 'subscribed') {
+      console.log('Already subscribed to absence notifications');
+      return;
+    }
 
     // Subscribe to absence notifications
     const absenceChannel = supabase
@@ -83,7 +98,11 @@ export default function ParentDashboard() {
           loadStats();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Absence channel status:', status);
+      });
+
+    absenceChannelRef.current = absenceChannel;
 
     // Subscribe to event notifications
     const eventChannel = supabase
@@ -102,9 +121,11 @@ export default function ParentDashboard() {
           loadStats();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Event channel status:', status);
+      });
 
-    subscriptionRef.current = { absenceChannel, eventChannel };
+    eventChannelRef.current = eventChannel;
   };
 
   const loadStats = async () => {

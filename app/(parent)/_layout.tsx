@@ -8,7 +8,7 @@ export default function ParentLayout() {
     { route: '/(parent)/children', label: 'Children', icon: 'people' },
     { route: '/(parent)/attendance', label: 'Attendance', icon: 'check.circle' },
     { route: '/(parent)/events', label: 'Events', icon: 'event' },
-    { route: '/(parent)/notifications', label: 'Alerts', icon: 'bell' },
+    { route: '/(parent)/announcements', label: 'News', icon: 'megaphone' },
   ];
 
   return <FloatingTabBar tabs={tabs} />;

@@ -14,7 +14,6 @@ import { Child, Attendance } from '@/types/database.types';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import AttendanceGraph from '@/components/AttendanceGraph';
 
 export default function AttendanceScreen() {
   const { user } = useAuth();
@@ -23,11 +22,9 @@ export default function AttendanceScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [graphData, setGraphData] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
-    loadGraphData();
   }, [selectedDate]);
 
   const loadData = async () => {
@@ -50,87 +47,16 @@ export default function AttendanceScreen() {
     }
   };
 
-  const loadGraphData = async () => {
-    try {
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 7);
-
-      const { data: attendanceData, error } = await supabase
-        .from('attendance')
-        .select('date, is_present')
-        .gte('date', startDate.toISOString().split('T')[0])
-        .lte('date', endDate.toISOString().split('T')[0]);
-
-      if (error) throw error;
-
-      const { data: childrenData, error: childrenError } = await supabase
-        .from('children')
-        .select('child_id');
-
-      if (childrenError) throw childrenError;
-
-      const totalChildren = childrenData?.length || 0;
-
-      const dateMap = new Map<string, { present: number; absent: number }>();
-      
-      attendanceData?.forEach((record) => {
-        const existing = dateMap.get(record.date) || { present: 0, absent: 0 };
-        if (record.is_present) {
-          existing.present++;
-        } else {
-          existing.absent++;
-        }
-        dateMap.set(record.date, existing);
-      });
-
-      const graphDataArray = Array.from(dateMap.entries()).map(([date, counts]) => ({
-        date,
-        present: counts.present,
-        absent: counts.absent,
-        total: totalChildren,
-      }));
-
-      graphDataArray.sort((a, b) => a.date.localeCompare(b.date));
-      setGraphData(graphDataArray);
-    } catch (error) {
-      console.error('Error loading graph data:', error);
-    }
-  };
-
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
-    await loadGraphData();
     setRefreshing(false);
-  };
-
-  const sendAbsenceNotification = async (childId: string, childName: string, parentId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .insert([{
-          parent_id: parentId,
-          notification_type: 'absence',
-          title: 'Child Absence Alert',
-          message: `${childName} was marked absent today (${selectedDate}). Please contact the school if this is unexpected.`,
-          related_id: childId,
-        }]);
-
-      if (error) throw error;
-      console.log('Absence notification sent successfully');
-    } catch (error) {
-      console.error('Error sending absence notification:', error);
-    }
   };
 
   const toggleAttendance = async (childId: string, currentStatus: boolean | undefined) => {
     if (!user) return;
 
     try {
-      const child = children.find(c => c.child_id === childId);
-      if (!child) return;
-
       const existingRecord = attendance.find(a => a.child_id === childId);
       const newStatus = !currentStatus;
 
@@ -154,16 +80,7 @@ export default function AttendanceScreen() {
         if (error) throw error;
       }
 
-      if (!newStatus) {
-        await sendAbsenceNotification(
-          childId,
-          `${child.first_name} ${child.last_name}`,
-          child.parent_id
-        );
-      }
-
       loadData();
-      loadGraphData();
     } catch (error) {
       console.error('Error toggling attendance:', error);
       Alert.alert('Error', 'Failed to update attendance');
@@ -196,8 +113,6 @@ export default function AttendanceScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <AttendanceGraph data={graphData} type="line" />
-
         <View style={styles.dateSelector}>
           <TouchableOpacity onPress={() => changeDate(-1)} style={styles.dateButton}>
             <IconSymbol name="chevron.left" size={24} color={colors.text} />

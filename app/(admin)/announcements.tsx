@@ -12,10 +12,10 @@ import {
   RefreshControl,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Announcement } from '@/types/database.types';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { Announcement } from '@/types/database.types';
 
 export default function AnnouncementsScreen() {
   const { user } = useAuth();
@@ -63,35 +63,6 @@ export default function AnnouncementsScreen() {
     setModalVisible(true);
   };
 
-  const sendNotificationsToAllParents = async (announcementTitle: string, announcementMessage: string) => {
-    try {
-      const { data: parents, error } = await supabase
-        .from('users')
-        .select('user_id')
-        .eq('role', 'parent');
-
-      if (error) throw error;
-
-      if (parents && parents.length > 0) {
-        const notifications = parents.map(parent => ({
-          parent_id: parent.user_id,
-          notification_type: 'announcement',
-          title: announcementTitle,
-          message: announcementMessage,
-        }));
-
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert(notifications);
-
-        if (notifError) throw notifError;
-        console.log(`Sent notifications to ${parents.length} parents`);
-      }
-    } catch (error) {
-      console.error('Error sending notifications:', error);
-    }
-  };
-
   const handleSave = async () => {
     if (!formData.title || !formData.message) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -107,15 +78,13 @@ export default function AnnouncementsScreen() {
       const { error } = await supabase
         .from('announcements')
         .insert([{
-          ...formData,
+          title: formData.title,
+          message: formData.message,
           created_by_id: user.user_id,
         }]);
 
       if (error) throw error;
-
-      await sendNotificationsToAllParents(formData.title, formData.message);
-
-      Alert.alert('Success', 'Announcement posted and notifications sent to all parents');
+      Alert.alert('Success', 'Announcement created successfully');
       setModalVisible(false);
       loadAnnouncements();
     } catch (error) {
@@ -127,7 +96,7 @@ export default function AnnouncementsScreen() {
   const handleDelete = (announcement: Announcement) => {
     Alert.alert(
       'Delete Announcement',
-      `Are you sure you want to delete "${announcement.title}"?`,
+      'Are you sure you want to delete this announcement?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -156,8 +125,10 @@ export default function AnnouncementsScreen() {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -190,7 +161,7 @@ export default function AnnouncementsScreen() {
               <View style={styles.announcementHeader}>
                 <View style={styles.announcementInfo}>
                   <Text style={styles.announcementTitle}>{announcement.title}</Text>
-                  <Text style={commonStyles.textSecondary}>
+                  <Text style={styles.announcementDate}>
                     {formatDate(announcement.created_at)}
                   </Text>
                 </View>
@@ -225,15 +196,7 @@ export default function AnnouncementsScreen() {
               onChangeText={(text) => setFormData({ ...formData, message: text })}
               multiline
               numberOfLines={6}
-              textAlignVertical="top"
             />
-
-            <View style={styles.notificationInfo}>
-              <IconSymbol name="info.circle" size={20} color={colors.primary} />
-              <Text style={styles.notificationInfoText}>
-                All parents will receive a notification about this announcement
-              </Text>
-            </View>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -294,13 +257,17 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 4,
   },
-  announcementMessage: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 22,
+  announcementDate: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   deleteButton: {
     padding: 8,
+  },
+  announcementMessage: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
   },
   modalOverlay: {
     flex: 1,
@@ -313,7 +280,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     width: '90%',
-    maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 24,
@@ -322,25 +288,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   messageInput: {
-    minHeight: 120,
-  },
-  notificationInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  notificationInfoText: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 13,
-    color: colors.text,
+    height: 120,
+    textAlignVertical: 'top',
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 20,
   },
   modalButton: {
     flex: 1,

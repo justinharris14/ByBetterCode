@@ -12,13 +12,12 @@ import {
   RefreshControl,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Child, Parent } from '@/types/database.types';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { Child } from '@/types/database.types';
 
 export default function ChildrenScreen() {
   const [children, setChildren] = useState<Child[]>([]);
-  const [parents, setParents] = useState<Parent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -30,9 +29,6 @@ export default function ChildrenScreen() {
     allergies: '',
     medical_info: '',
     parent_id: '',
-    emergency_contact_name: '',
-    emergency_contact_phone: '',
-    emergency_contact_relationship: '',
   });
 
   useEffect(() => {
@@ -41,19 +37,16 @@ export default function ChildrenScreen() {
 
   const loadData = async () => {
     try {
-      const [childrenData, parentsData] = await Promise.all([
-        supabase.from('children').select('*').order('first_name', { ascending: true }),
-        supabase.from('parents').select('*').order('first_name', { ascending: true }),
-      ]);
+      const { data, error } = await supabase
+        .from('children')
+        .select('*')
+        .order('first_name', { ascending: true });
 
-      if (childrenData.error) throw childrenData.error;
-      if (parentsData.error) throw parentsData.error;
-
-      setChildren(childrenData.data || []);
-      setParents(parentsData.data || []);
+      if (error) throw error;
+      setChildren(data || []);
     } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert('Error', 'Failed to load data');
+      console.error('Error loading children:', error);
+      Alert.alert('Error', 'Failed to load children');
     } finally {
       setLoading(false);
     }
@@ -74,9 +67,6 @@ export default function ChildrenScreen() {
       allergies: '',
       medical_info: '',
       parent_id: '',
-      emergency_contact_name: '',
-      emergency_contact_phone: '',
-      emergency_contact_relationship: '',
     });
     setModalVisible(true);
   };
@@ -90,15 +80,12 @@ export default function ChildrenScreen() {
       allergies: child.allergies || '',
       medical_info: child.medical_info || '',
       parent_id: child.parent_id,
-      emergency_contact_name: child.emergency_contact_name || '',
-      emergency_contact_phone: child.emergency_contact_phone || '',
-      emergency_contact_relationship: child.emergency_contact_relationship || '',
     });
     setModalVisible(true);
   };
 
   const handleSave = async () => {
-    if (!formData.first_name || !formData.last_name || !formData.dob || !formData.parent_id) {
+    if (!formData.first_name || !formData.last_name || !formData.dob) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -158,11 +145,6 @@ export default function ChildrenScreen() {
     );
   };
 
-  const getParentName = (parentId: string) => {
-    const parent = parents.find(p => p.parent_id === parentId);
-    return parent ? `${parent.first_name} ${parent.last_name}` : 'Unknown';
-  };
-
   if (loading) {
     return (
       <View style={[commonStyles.container, commonStyles.center]}>
@@ -194,10 +176,20 @@ export default function ChildrenScreen() {
                   <Text style={styles.childName}>
                     {child.first_name} {child.last_name}
                   </Text>
-                  <Text style={commonStyles.textSecondary}>DOB: {child.dob}</Text>
                   <Text style={commonStyles.textSecondary}>
-                    Parent: {getParentName(child.parent_id)}
+                    DOB: {new Date(child.dob).toLocaleDateString()}
                   </Text>
+                  <Text style={commonStyles.textSecondary}>
+                    Age: {new Date().getFullYear() - new Date(child.dob).getFullYear()}
+                  </Text>
+                  {child.allergies && (
+                    <Text style={styles.allergyText}>⚠️ Allergies: {child.allergies}</Text>
+                  )}
+                  {child.medical_info && (
+                    <Text style={commonStyles.textSecondary}>
+                      Medical: {child.medical_info}
+                    </Text>
+                  )}
                 </View>
                 <View style={styles.actions}>
                   <TouchableOpacity onPress={() => openEditModal(child)} style={styles.actionButton}>
@@ -208,21 +200,6 @@ export default function ChildrenScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-              {child.allergies && (
-                <Text style={styles.infoText}>⚠️ Allergies: {child.allergies}</Text>
-              )}
-              {child.medical_info && (
-                <Text style={styles.infoText}>🏥 Medical: {child.medical_info}</Text>
-              )}
-              {child.emergency_contact_name && (
-                <View style={styles.emergencySection}>
-                  <Text style={styles.emergencyTitle}>Emergency Contact:</Text>
-                  <Text style={styles.infoText}>
-                    {child.emergency_contact_name} ({child.emergency_contact_relationship})
-                  </Text>
-                  <Text style={styles.infoText}>📞 {child.emergency_contact_phone}</Text>
-                </View>
-              )}
             </View>
           ))
         )}
@@ -236,7 +213,6 @@ export default function ChildrenScreen() {
             </Text>
 
             <ScrollView>
-              <Text style={styles.sectionLabel}>Child Information</Text>
               <TextInput
                 style={commonStyles.input}
                 placeholder="First Name *"
@@ -255,31 +231,12 @@ export default function ChildrenScreen() {
                 value={formData.dob}
                 onChangeText={(text) => setFormData({ ...formData, dob: text })}
               />
-              
-              <Text style={styles.sectionLabel}>Parent</Text>
-              <View style={styles.parentSelector}>
-                {parents.map((parent) => (
-                  <TouchableOpacity
-                    key={parent.parent_id}
-                    style={[
-                      styles.parentOption,
-                      formData.parent_id === parent.parent_id && styles.parentOptionSelected,
-                    ]}
-                    onPress={() => setFormData({ ...formData, parent_id: parent.parent_id })}
-                  >
-                    <Text
-                      style={[
-                        styles.parentOptionText,
-                        formData.parent_id === parent.parent_id && styles.parentOptionTextSelected,
-                      ]}
-                    >
-                      {parent.first_name} {parent.last_name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.sectionLabel}>Medical Information</Text>
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Parent ID *"
+                value={formData.parent_id}
+                onChangeText={(text) => setFormData({ ...formData, parent_id: text })}
+              />
               <TextInput
                 style={commonStyles.input}
                 placeholder="Allergies"
@@ -293,27 +250,6 @@ export default function ChildrenScreen() {
                 value={formData.medical_info}
                 onChangeText={(text) => setFormData({ ...formData, medical_info: text })}
                 multiline
-              />
-
-              <Text style={styles.sectionLabel}>Emergency Contact</Text>
-              <TextInput
-                style={commonStyles.input}
-                placeholder="Emergency Contact Name"
-                value={formData.emergency_contact_name}
-                onChangeText={(text) => setFormData({ ...formData, emergency_contact_name: text })}
-              />
-              <TextInput
-                style={commonStyles.input}
-                placeholder="Emergency Contact Phone"
-                value={formData.emergency_contact_phone}
-                onChangeText={(text) => setFormData({ ...formData, emergency_contact_phone: text })}
-                keyboardType="phone-pad"
-              />
-              <TextInput
-                style={commonStyles.input}
-                placeholder="Relationship (e.g., Grandparent, Aunt)"
-                value={formData.emergency_contact_relationship}
-                onChangeText={(text) => setFormData({ ...formData, emergency_contact_relationship: text })}
               />
             </ScrollView>
 
@@ -365,7 +301,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
   },
   childInfo: {
     flex: 1,
@@ -376,29 +311,17 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 4,
   },
+  allergyText: {
+    fontSize: 14,
+    color: colors.accent,
+    marginTop: 4,
+  },
   actions: {
     flexDirection: 'row',
   },
   actionButton: {
     padding: 8,
     marginLeft: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: colors.text,
-    marginTop: 4,
-  },
-  emergencySection: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  emergencyTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -418,35 +341,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 20,
-  },
-  sectionLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  parentSelector: {
-    marginBottom: 12,
-  },
-  parentOption: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 8,
-  },
-  parentOptionSelected: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
-  },
-  parentOptionText: {
-    fontSize: 14,
-    color: colors.text,
-  },
-  parentOptionTextSelected: {
-    fontWeight: '600',
-    color: colors.primary,
   },
   modalButtons: {
     flexDirection: 'row',

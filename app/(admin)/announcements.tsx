@@ -63,9 +63,43 @@ export default function AnnouncementsScreen() {
     setModalVisible(true);
   };
 
+  const sendNotificationsToAllParents = async (announcementTitle: string, announcementMessage: string) => {
+    try {
+      const { data: parents, error } = await supabase
+        .from('users')
+        .select('user_id')
+        .eq('role', 'parent');
+
+      if (error) throw error;
+
+      if (parents && parents.length > 0) {
+        const notifications = parents.map(parent => ({
+          parent_id: parent.user_id,
+          notification_type: 'announcement',
+          title: announcementTitle,
+          message: announcementMessage,
+        }));
+
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (notifError) throw notifError;
+        console.log(`Sent notifications to ${parents.length} parents`);
+      }
+    } catch (error) {
+      console.error('Error sending notifications:', error);
+    }
+  };
+
   const handleSave = async () => {
     if (!formData.title || !formData.message) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!user) {
+      Alert.alert('Error', 'User not found');
       return;
     }
 
@@ -74,11 +108,14 @@ export default function AnnouncementsScreen() {
         .from('announcements')
         .insert([{
           ...formData,
-          created_by_id: user?.user_id || '',
+          created_by_id: user.user_id,
         }]);
 
       if (error) throw error;
-      Alert.alert('Success', 'Announcement posted successfully');
+
+      await sendNotificationsToAllParents(formData.title, formData.message);
+
+      Alert.alert('Success', 'Announcement posted and notifications sent to all parents');
       setModalVisible(false);
       loadAnnouncements();
     } catch (error) {
@@ -116,6 +153,14 @@ export default function AnnouncementsScreen() {
     );
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
   if (loading) {
     return (
       <View style={[commonStyles.container, commonStyles.center]}>
@@ -132,7 +177,7 @@ export default function AnnouncementsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <TouchableOpacity style={[buttonStyles.primary, styles.addButton]} onPress={openAddModal}>
-          <Text style={styles.addButtonText}>+ Post Announcement</Text>
+          <Text style={styles.addButtonText}>+ New Announcement</Text>
         </TouchableOpacity>
 
         {announcements.length === 0 ? (
@@ -146,14 +191,17 @@ export default function AnnouncementsScreen() {
                 <View style={styles.announcementInfo}>
                   <Text style={styles.announcementTitle}>{announcement.title}</Text>
                   <Text style={commonStyles.textSecondary}>
-                    {new Date(announcement.created_at).toLocaleDateString()}
+                    {formatDate(announcement.created_at)}
                   </Text>
-                  <Text style={styles.announcementMessage}>{announcement.message}</Text>
                 </View>
-                <TouchableOpacity onPress={() => handleDelete(announcement)} style={styles.deleteButton}>
+                <TouchableOpacity
+                  onPress={() => handleDelete(announcement)}
+                  style={styles.deleteButton}
+                >
                   <IconSymbol name="trash" size={20} color={colors.accent} />
                 </TouchableOpacity>
               </View>
+              <Text style={styles.announcementMessage}>{announcement.message}</Text>
             </View>
           ))
         )}
@@ -162,7 +210,7 @@ export default function AnnouncementsScreen() {
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Post Announcement</Text>
+            <Text style={styles.modalTitle}>New Announcement</Text>
 
             <TextInput
               style={commonStyles.input}
@@ -171,13 +219,21 @@ export default function AnnouncementsScreen() {
               onChangeText={(text) => setFormData({ ...formData, title: text })}
             />
             <TextInput
-              style={[commonStyles.input, styles.textArea]}
+              style={[commonStyles.input, styles.messageInput]}
               placeholder="Message *"
               value={formData.message}
               onChangeText={(text) => setFormData({ ...formData, message: text })}
               multiline
               numberOfLines={6}
+              textAlignVertical="top"
             />
+
+            <View style={styles.notificationInfo}>
+              <IconSymbol name="info.circle" size={20} color={colors.primary} />
+              <Text style={styles.notificationInfoText}>
+                All parents will receive a notification about this announcement
+              </Text>
+            </View>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -227,6 +283,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 12,
   },
   announcementInfo: {
     flex: 1,
@@ -238,10 +295,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   announcementMessage: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.text,
-    marginTop: 8,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   deleteButton: {
     padding: 8,
@@ -257,6 +313,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     width: '90%',
+    maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 24,
@@ -264,14 +321,26 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 20,
   },
-  textArea: {
-    height: 120,
-    textAlignVertical: 'top',
+  messageInput: {
+    minHeight: 120,
+  },
+  notificationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  notificationInfoText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 13,
+    color: colors.text,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
   },
   modalButton: {
     flex: 1,

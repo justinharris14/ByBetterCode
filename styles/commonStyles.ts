@@ -1,44 +1,80 @@
 
-import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-// CrècheConnect Color Palette
 export const colors = {
-  background: '#FFFFFF',
-  text: '#003049',
-  textSecondary: '#777777',
   primary: '#A9D6E5',
+  primaryLight: '#E8F4F8',
   secondary: '#FAD4D8',
-  accent: '#E76F51',
-  card: '#F3F3F3',
-  highlight: '#264653',
-  success: '#34C759',
-  warning: '#FF9500',
-  error: '#FF3B30',
+  accent: '#FF6B9D',
+  background: '#F3F3F3',
+  card: '#FFFFFF',
   white: '#FFFFFF',
+  text: '#003049',
+  textSecondary: '#6B7280',
+  border: '#E5E7EB',
+  success: '#4CAF50',
+  warning: '#FF9800',
+  error: '#FF5252',
+  info: '#2196F3',
 };
+
+export const commonStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    color: colors.text,
+    fontSize: 16,
+  },
+  textSecondary: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  cardWhite: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+  },
+  input: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 12,
+  },
+});
 
 export const buttonStyles = StyleSheet.create({
   primary: {
     backgroundColor: colors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
     borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondary: {
     backgroundColor: colors.secondary,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  accent: {
-    backgroundColor: colors.accent,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -46,93 +82,14 @@ export const buttonStyles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
     borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-});
-
-export const commonStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
-    elevation: 2,
-  },
-  cardWhite: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
-    elevation: 2,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
   },
   text: {
-    fontSize: 16,
     color: colors.text,
-    lineHeight: 24,
-  },
-  textSecondary: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  input: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     fontSize: 16,
-    color: colors.text,
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  center: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badge: {
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

@@ -1,70 +1,15 @@
 
 import React from 'react';
-import { Stack } from 'expo-router';
-import { colors } from '@/styles/commonStyles';
+import FloatingTabBar from '@/components/FloatingTabBar';
 
 export default function AdminLayout() {
-  return (
-    <Stack
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: colors.primary,
-        },
-        headerTintColor: colors.text,
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
-      }}
-    >
-      <Stack.Screen
-        name="dashboard"
-        options={{
-          title: 'Admin Dashboard',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="children"
-        options={{
-          title: 'Manage Children',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="attendance"
-        options={{
-          title: 'Attendance',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="events"
-        options={{
-          title: 'Events',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="announcements"
-        options={{
-          title: 'Announcements',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="media"
-        options={{
-          title: 'Media Gallery',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="payments"
-        options={{
-          title: 'Payments',
-          headerShown: true,
-        }}
-      />
-    </Stack>
-  );
+  const tabs = [
+    { route: '/(admin)/dashboard', label: 'Home', icon: 'house' },
+    { route: '/(admin)/children', label: 'Children', icon: 'people' },
+    { route: '/(admin)/parents', label: 'Parents', icon: 'person.2' },
+    { route: '/(admin)/staff', label: 'Staff', icon: 'person.badge.shield.checkmark' },
+    { route: '/(admin)/attendance', label: 'Attendance', icon: 'check.circle' },
+  ];
+
+  return <FloatingTabBar tabs={tabs} />;
 }

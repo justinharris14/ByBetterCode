@@ -1,70 +1,15 @@
 
 import React from 'react';
-import { Stack } from 'expo-router';
-import { colors } from '@/styles/commonStyles';
+import FloatingTabBar from '@/components/FloatingTabBar';
 
 export default function ParentLayout() {
-  return (
-    <Stack
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: colors.secondary,
-        },
-        headerTintColor: colors.text,
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
-      }}
-    >
-      <Stack.Screen
-        name="dashboard"
-        options={{
-          title: 'Parent Dashboard',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="children"
-        options={{
-          title: 'My Children',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="attendance"
-        options={{
-          title: 'Attendance History',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="events"
-        options={{
-          title: 'Events',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="announcements"
-        options={{
-          title: 'Announcements',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="payments"
-        options={{
-          title: 'Payments',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="media"
-        options={{
-          title: 'Photos & Videos',
-          headerShown: true,
-        }}
-      />
-    </Stack>
-  );
+  const tabs = [
+    { route: '/(parent)/dashboard', label: 'Home', icon: 'house' },
+    { route: '/(parent)/children', label: 'Children', icon: 'people' },
+    { route: '/(parent)/attendance', label: 'Attendance', icon: 'check.circle' },
+    { route: '/(parent)/events', label: 'Events', icon: 'event' },
+    { route: '/(parent)/notifications', label: 'Alerts', icon: 'bell' },
+  ];
+
+  return <FloatingTabBar tabs={tabs} />;
 }

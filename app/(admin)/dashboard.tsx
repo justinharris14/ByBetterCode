@@ -15,6 +15,8 @@ import { supabase } from '@/lib/supabase';
 
 interface DashboardStats {
   totalChildren: number;
+  totalParents: number;
+  totalStaff: number;
   totalEvents: number;
   paymentsDue: number;
   attendanceRate: number;
@@ -25,6 +27,8 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalChildren: 0,
+    totalParents: 0,
+    totalStaff: 0,
     totalEvents: 0,
     paymentsDue: 0,
     attendanceRate: 0,
@@ -36,69 +40,33 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
-      console.log('Loading dashboard stats...');
+      console.log('Loading admin dashboard stats');
 
-      // Get total children count
-      const { count: childrenCount, error: childrenError } = await supabase
-        .from('children')
-        .select('*', { count: 'exact', head: true });
+      const [childrenCount, parentsCount, staffCount, eventsCount, paymentsCount, attendanceData] = await Promise.all([
+        supabase.from('children').select('*', { count: 'exact', head: true }),
+        supabase.from('parents').select('*', { count: 'exact', head: true }),
+        supabase.from('staff').select('*', { count: 'exact', head: true }),
+        supabase.from('events').select('*', { count: 'exact', head: true }).gte('event_datetime', new Date().toISOString()),
+        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('attendance').select('is_present').eq('date', new Date().toISOString().split('T')[0]),
+      ]);
 
-      if (childrenError) {
-        console.error('Error loading children count:', childrenError);
-      }
-
-      // Get upcoming events count
-      const { count: eventsCount, error: eventsError } = await supabase
-        .from('events')
-        .select('*', { count: 'exact', head: true })
-        .gte('event_datetime', new Date().toISOString());
-
-      if (eventsError) {
-        console.error('Error loading events count:', eventsError);
-      }
-
-      // Get pending payments count
-      const { count: paymentsCount, error: paymentsError } = await supabase
-        .from('payments')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      if (paymentsError) {
-        console.error('Error loading payments count:', paymentsError);
-      }
-
-      // Calculate attendance rate for today
-      const today = new Date().toISOString().split('T')[0];
-      const { data: attendanceData, error: attendanceError } = await supabase
-        .from('attendance')
-        .select('is_present')
-        .eq('date', today);
-
-      if (attendanceError) {
-        console.error('Error loading attendance:', attendanceError);
-      }
-
-      let attendanceRate = 0;
-      if (attendanceData && attendanceData.length > 0) {
-        const presentCount = attendanceData.filter(a => a.is_present).length;
-        attendanceRate = Math.round((presentCount / attendanceData.length) * 100);
-      }
+      const presentCount = attendanceData.data?.filter(a => a.is_present).length || 0;
+      const totalAttendance = attendanceData.data?.length || 0;
+      const attendanceRate = totalAttendance > 0 ? Math.round((presentCount / totalAttendance) * 100) : 0;
 
       setStats({
-        totalChildren: childrenCount || 0,
-        totalEvents: eventsCount || 0,
-        paymentsDue: paymentsCount || 0,
-        attendanceRate: attendanceRate,
-      });
-
-      console.log('Stats loaded successfully:', {
-        totalChildren: childrenCount,
-        totalEvents: eventsCount,
-        paymentsDue: paymentsCount,
+        totalChildren: childrenCount.count || 0,
+        totalParents: parentsCount.count || 0,
+        totalStaff: staffCount.count || 0,
+        totalEvents: eventsCount.count || 0,
+        paymentsDue: paymentsCount.count || 0,
         attendanceRate,
       });
+
+      console.log('Admin stats loaded successfully');
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error('Error loading admin stats:', error);
     }
   };
 
@@ -123,8 +91,8 @@ export default function AdminDashboard() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Welcome Back! 👋</Text>
-            <Text style={styles.subGreeting}>Admin Dashboard</Text>
+            <Text style={styles.greeting}>Admin Dashboard 👨‍💼</Text>
+            <Text style={styles.subGreeting}>Manage your crèche</Text>
           </View>
           <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
             <IconSymbol name="exit.to.app" size={24} color={colors.text} />
@@ -135,30 +103,42 @@ export default function AdminDashboard() {
           <View style={[styles.statCard, styles.statCardPrimary]}>
             <IconSymbol name="people" size={32} color={colors.white} />
             <Text style={styles.statValue}>{stats.totalChildren}</Text>
-            <Text style={styles.statLabel}>Total Children</Text>
+            <Text style={styles.statLabel}>Children</Text>
           </View>
 
           <View style={[styles.statCard, styles.statCardSecondary]}>
-            <IconSymbol name="event" size={32} color={colors.white} />
-            <Text style={styles.statValue}>{stats.totalEvents}</Text>
-            <Text style={styles.statLabel}>Upcoming Events</Text>
+            <IconSymbol name="person.2" size={32} color={colors.white} />
+            <Text style={styles.statValue}>{stats.totalParents}</Text>
+            <Text style={styles.statLabel}>Parents</Text>
+          </View>
+
+          <View style={[styles.statCard, styles.statCardInfo]}>
+            <IconSymbol name="person.badge.shield.checkmark" size={32} color={colors.white} />
+            <Text style={styles.statValue}>{stats.totalStaff}</Text>
+            <Text style={styles.statLabel}>Staff</Text>
           </View>
 
           <View style={[styles.statCard, styles.statCardWarning]}>
+            <IconSymbol name="event" size={32} color={colors.white} />
+            <Text style={styles.statValue}>{stats.totalEvents}</Text>
+            <Text style={styles.statLabel}>Events</Text>
+          </View>
+
+          <View style={[styles.statCard, styles.statCardDanger]}>
             <IconSymbol name="payment" size={32} color={colors.white} />
             <Text style={styles.statValue}>{stats.paymentsDue}</Text>
             <Text style={styles.statLabel}>Payments Due</Text>
           </View>
 
           <View style={[styles.statCard, styles.statCardSuccess]}>
-            <IconSymbol name="check.circle" size={32} color={colors.white} />
+            <IconSymbol name="chart.bar" size={32} color={colors.white} />
             <Text style={styles.statValue}>{stats.attendanceRate}%</Text>
-            <Text style={styles.statLabel}>Attendance Rate</Text>
+            <Text style={styles.statLabel}>Attendance</Text>
           </View>
         </View>
 
         <View style={styles.quickActions}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionTitle}>Management</Text>
           
           <TouchableOpacity
             style={styles.actionCard}
@@ -166,8 +146,32 @@ export default function AdminDashboard() {
           >
             <IconSymbol name="people" size={28} color={colors.primary} />
             <View style={styles.actionTextContainer}>
-              <Text style={styles.actionTitle}>Manage Children</Text>
-              <Text style={styles.actionSubtitle}>Add, edit or view children</Text>
+              <Text style={styles.actionTitle}>Children</Text>
+              <Text style={styles.actionSubtitle}>Manage child profiles</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(admin)/parents')}
+          >
+            <IconSymbol name="person.2" size={28} color={colors.primary} />
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Parents</Text>
+              <Text style={styles.actionSubtitle}>Manage parent information</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(admin)/staff')}
+          >
+            <IconSymbol name="person.badge.shield.checkmark" size={28} color={colors.primary} />
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Staff</Text>
+              <Text style={styles.actionSubtitle}>Manage staff & assignments</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -178,8 +182,8 @@ export default function AdminDashboard() {
           >
             <IconSymbol name="check.circle" size={28} color={colors.primary} />
             <View style={styles.actionTextContainer}>
-              <Text style={styles.actionTitle}>Mark Attendance</Text>
-              <Text style={styles.actionSubtitle}>Track daily attendance</Text>
+              <Text style={styles.actionTitle}>Attendance</Text>
+              <Text style={styles.actionSubtitle}>Mark daily attendance</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -190,8 +194,8 @@ export default function AdminDashboard() {
           >
             <IconSymbol name="event" size={28} color={colors.primary} />
             <View style={styles.actionTextContainer}>
-              <Text style={styles.actionTitle}>Manage Events</Text>
-              <Text style={styles.actionSubtitle}>Create and schedule events</Text>
+              <Text style={styles.actionTitle}>Events</Text>
+              <Text style={styles.actionSubtitle}>Create and manage events</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -200,10 +204,22 @@ export default function AdminDashboard() {
             style={styles.actionCard}
             onPress={() => router.push('/(admin)/announcements')}
           >
-            <IconSymbol name="notifications" size={28} color={colors.primary} />
+            <IconSymbol name="megaphone" size={28} color={colors.primary} />
             <View style={styles.actionTextContainer}>
               <Text style={styles.actionTitle}>Announcements</Text>
-              <Text style={styles.actionSubtitle}>Post updates for parents</Text>
+              <Text style={styles.actionSubtitle}>Post school updates</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(admin)/payments')}
+          >
+            <IconSymbol name="payment" size={28} color={colors.primary} />
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Payments</Text>
+              <Text style={styles.actionSubtitle}>Manage payments & receipts</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -215,16 +231,10 @@ export default function AdminDashboard() {
             <IconSymbol name="photo.library" size={28} color={colors.primary} />
             <View style={styles.actionTextContainer}>
               <Text style={styles.actionTitle}>Media Gallery</Text>
-              <Text style={styles.actionSubtitle}>Upload photos and videos</Text>
+              <Text style={styles.actionSubtitle}>Upload photos & videos</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.successNotice}>
-          <Text style={styles.successNoticeText}>
-            ✅ Supabase Connected: Real-time data enabled
-          </Text>
         </View>
       </ScrollView>
     </View>
@@ -263,8 +273,8 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    minWidth: '45%',
-    padding: 20,
+    minWidth: '30%',
+    padding: 16,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -278,17 +288,23 @@ const styles = StyleSheet.create({
   statCardWarning: {
     backgroundColor: '#FF9800',
   },
+  statCardInfo: {
+    backgroundColor: '#2196F3',
+  },
+  statCardDanger: {
+    backgroundColor: '#FF5252',
+  },
   statCardSuccess: {
     backgroundColor: '#4CAF50',
   },
   statValue: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
     color: colors.white,
-    marginTop: 12,
+    marginTop: 8,
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.white,
     marginTop: 4,
     textAlign: 'center',
@@ -323,19 +339,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
-  },
-  successNotice: {
-    margin: 20,
-    padding: 16,
-    backgroundColor: '#E8F5E9',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-  },
-  successNoticeText: {
-    fontSize: 13,
-    color: '#2E7D32',
-    textAlign: 'center',
-    fontWeight: '600',
   },
 });

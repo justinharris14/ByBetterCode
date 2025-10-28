@@ -12,48 +12,43 @@ import {
   RefreshControl,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Child, Parent } from '@/types/database.types';
+import { Parent } from '@/types/database.types';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
-export default function ChildrenScreen() {
-  const [children, setChildren] = useState<Child[]>([]);
+export default function ParentsScreen() {
   const [parents, setParents] = useState<Parent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingChild, setEditingChild] = useState<Child | null>(null);
+  const [editingParent, setEditingParent] = useState<Parent | null>(null);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
-    dob: '',
-    allergies: '',
-    medical_info: '',
-    parent_id: '',
+    email: '',
+    phone: '',
+    address: '',
     emergency_contact_name: '',
     emergency_contact_phone: '',
     emergency_contact_relationship: '',
   });
 
   useEffect(() => {
-    loadData();
+    loadParents();
   }, []);
 
-  const loadData = async () => {
+  const loadParents = async () => {
     try {
-      const [childrenData, parentsData] = await Promise.all([
-        supabase.from('children').select('*').order('first_name', { ascending: true }),
-        supabase.from('parents').select('*').order('first_name', { ascending: true }),
-      ]);
+      const { data, error } = await supabase
+        .from('parents')
+        .select('*')
+        .order('first_name', { ascending: true });
 
-      if (childrenData.error) throw childrenData.error;
-      if (parentsData.error) throw parentsData.error;
-
-      setChildren(childrenData.data || []);
-      setParents(parentsData.data || []);
+      if (error) throw error;
+      setParents(data || []);
     } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert('Error', 'Failed to load data');
+      console.error('Error loading parents:', error);
+      Alert.alert('Error', 'Failed to load parents');
     } finally {
       setLoading(false);
     }
@@ -61,19 +56,18 @@ export default function ChildrenScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadData();
+    await loadParents();
     setRefreshing(false);
   };
 
   const openAddModal = () => {
-    setEditingChild(null);
+    setEditingParent(null);
     setFormData({
       first_name: '',
       last_name: '',
-      dob: '',
-      allergies: '',
-      medical_info: '',
-      parent_id: '',
+      email: '',
+      phone: '',
+      address: '',
       emergency_contact_name: '',
       emergency_contact_phone: '',
       emergency_contact_relationship: '',
@@ -81,58 +75,73 @@ export default function ChildrenScreen() {
     setModalVisible(true);
   };
 
-  const openEditModal = (child: Child) => {
-    setEditingChild(child);
+  const openEditModal = (parent: Parent) => {
+    setEditingParent(parent);
     setFormData({
-      first_name: child.first_name,
-      last_name: child.last_name,
-      dob: child.dob,
-      allergies: child.allergies || '',
-      medical_info: child.medical_info || '',
-      parent_id: child.parent_id,
-      emergency_contact_name: child.emergency_contact_name || '',
-      emergency_contact_phone: child.emergency_contact_phone || '',
-      emergency_contact_relationship: child.emergency_contact_relationship || '',
+      first_name: parent.first_name,
+      last_name: parent.last_name,
+      email: parent.email,
+      phone: parent.phone || '',
+      address: parent.address || '',
+      emergency_contact_name: parent.emergency_contact_name || '',
+      emergency_contact_phone: parent.emergency_contact_phone || '',
+      emergency_contact_relationship: parent.emergency_contact_relationship || '',
     });
     setModalVisible(true);
   };
 
   const handleSave = async () => {
-    if (!formData.first_name || !formData.last_name || !formData.dob || !formData.parent_id) {
+    if (!formData.first_name || !formData.last_name || !formData.email) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
     try {
-      if (editingChild) {
+      if (editingParent) {
         const { error } = await supabase
-          .from('children')
-          .update(formData)
-          .eq('child_id', editingChild.child_id);
+          .from('parents')
+          .update({ ...formData, updated_at: new Date().toISOString() })
+          .eq('parent_id', editingParent.parent_id);
 
         if (error) throw error;
-        Alert.alert('Success', 'Child updated successfully');
+        Alert.alert('Success', 'Parent updated successfully');
       } else {
-        const { error } = await supabase
-          .from('children')
-          .insert([formData]);
+        // First create a user account
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .insert([{
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            email: formData.email,
+            phone: formData.phone,
+            role: 'parent',
+          }])
+          .select()
+          .single();
 
-        if (error) throw error;
-        Alert.alert('Success', 'Child added successfully');
+        if (userError) throw userError;
+
+        // Then create parent record
+        const { error: parentError } = await supabase
+          .from('parents')
+          .insert([{ ...formData, user_id: userData.user_id }]);
+
+        if (parentError) throw parentError;
+        Alert.alert('Success', 'Parent added successfully');
       }
 
       setModalVisible(false);
-      loadData();
+      loadParents();
     } catch (error) {
-      console.error('Error saving child:', error);
-      Alert.alert('Error', 'Failed to save child');
+      console.error('Error saving parent:', error);
+      Alert.alert('Error', 'Failed to save parent');
     }
   };
 
-  const handleDelete = (child: Child) => {
+  const handleDelete = (parent: Parent) => {
     Alert.alert(
-      'Delete Child',
-      `Are you sure you want to delete ${child.first_name} ${child.last_name}?`,
+      'Delete Parent',
+      `Are you sure you want to delete ${parent.first_name} ${parent.last_name}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -141,26 +150,21 @@ export default function ChildrenScreen() {
           onPress: async () => {
             try {
               const { error } = await supabase
-                .from('children')
+                .from('parents')
                 .delete()
-                .eq('child_id', child.child_id);
+                .eq('parent_id', parent.parent_id);
 
               if (error) throw error;
-              Alert.alert('Success', 'Child deleted successfully');
-              loadData();
+              Alert.alert('Success', 'Parent deleted successfully');
+              loadParents();
             } catch (error) {
-              console.error('Error deleting child:', error);
-              Alert.alert('Error', 'Failed to delete child');
+              console.error('Error deleting parent:', error);
+              Alert.alert('Error', 'Failed to delete parent');
             }
           },
         },
       ]
     );
-  };
-
-  const getParentName = (parentId: string) => {
-    const parent = parents.find(p => p.parent_id === parentId);
-    return parent ? `${parent.first_name} ${parent.last_name}` : 'Unknown';
   };
 
   if (loading) {
@@ -179,48 +183,45 @@ export default function ChildrenScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <TouchableOpacity style={[buttonStyles.primary, styles.addButton]} onPress={openAddModal}>
-          <Text style={styles.addButtonText}>+ Add Child</Text>
+          <Text style={styles.addButtonText}>+ Add Parent</Text>
         </TouchableOpacity>
 
-        {children.length === 0 ? (
+        {parents.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No children registered yet</Text>
+            <Text style={styles.emptyText}>No parents registered yet</Text>
           </View>
         ) : (
-          children.map((child) => (
-            <View key={child.child_id} style={commonStyles.cardWhite}>
-              <View style={styles.childHeader}>
-                <View style={styles.childInfo}>
-                  <Text style={styles.childName}>
-                    {child.first_name} {child.last_name}
+          parents.map((parent) => (
+            <View key={parent.parent_id} style={commonStyles.cardWhite}>
+              <View style={styles.parentHeader}>
+                <View style={styles.parentInfo}>
+                  <Text style={styles.parentName}>
+                    {parent.first_name} {parent.last_name}
                   </Text>
-                  <Text style={commonStyles.textSecondary}>DOB: {child.dob}</Text>
-                  <Text style={commonStyles.textSecondary}>
-                    Parent: {getParentName(child.parent_id)}
-                  </Text>
+                  <Text style={commonStyles.textSecondary}>📧 {parent.email}</Text>
+                  {parent.phone && (
+                    <Text style={commonStyles.textSecondary}>📱 {parent.phone}</Text>
+                  )}
                 </View>
                 <View style={styles.actions}>
-                  <TouchableOpacity onPress={() => openEditModal(child)} style={styles.actionButton}>
+                  <TouchableOpacity onPress={() => openEditModal(parent)} style={styles.actionButton}>
                     <IconSymbol name="pencil" size={20} color={colors.primary} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDelete(child)} style={styles.actionButton}>
+                  <TouchableOpacity onPress={() => handleDelete(parent)} style={styles.actionButton}>
                     <IconSymbol name="trash" size={20} color={colors.accent} />
                   </TouchableOpacity>
                 </View>
               </View>
-              {child.allergies && (
-                <Text style={styles.infoText}>⚠️ Allergies: {child.allergies}</Text>
+              {parent.address && (
+                <Text style={styles.infoText}>🏠 {parent.address}</Text>
               )}
-              {child.medical_info && (
-                <Text style={styles.infoText}>🏥 Medical: {child.medical_info}</Text>
-              )}
-              {child.emergency_contact_name && (
+              {parent.emergency_contact_name && (
                 <View style={styles.emergencySection}>
                   <Text style={styles.emergencyTitle}>Emergency Contact:</Text>
                   <Text style={styles.infoText}>
-                    {child.emergency_contact_name} ({child.emergency_contact_relationship})
+                    {parent.emergency_contact_name} ({parent.emergency_contact_relationship})
                   </Text>
-                  <Text style={styles.infoText}>📞 {child.emergency_contact_phone}</Text>
+                  <Text style={styles.infoText}>📞 {parent.emergency_contact_phone}</Text>
                 </View>
               )}
             </View>
@@ -232,11 +233,11 @@ export default function ChildrenScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              {editingChild ? 'Edit Child' : 'Add Child'}
+              {editingParent ? 'Edit Parent' : 'Add Parent'}
             </Text>
 
             <ScrollView>
-              <Text style={styles.sectionLabel}>Child Information</Text>
+              <Text style={styles.sectionLabel}>Personal Information</Text>
               <TextInput
                 style={commonStyles.input}
                 placeholder="First Name *"
@@ -251,47 +252,24 @@ export default function ChildrenScreen() {
               />
               <TextInput
                 style={commonStyles.input}
-                placeholder="Date of Birth (YYYY-MM-DD) *"
-                value={formData.dob}
-                onChangeText={(text) => setFormData({ ...formData, dob: text })}
-              />
-              
-              <Text style={styles.sectionLabel}>Parent</Text>
-              <View style={styles.parentSelector}>
-                {parents.map((parent) => (
-                  <TouchableOpacity
-                    key={parent.parent_id}
-                    style={[
-                      styles.parentOption,
-                      formData.parent_id === parent.parent_id && styles.parentOptionSelected,
-                    ]}
-                    onPress={() => setFormData({ ...formData, parent_id: parent.parent_id })}
-                  >
-                    <Text
-                      style={[
-                        styles.parentOptionText,
-                        formData.parent_id === parent.parent_id && styles.parentOptionTextSelected,
-                      ]}
-                    >
-                      {parent.first_name} {parent.last_name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.sectionLabel}>Medical Information</Text>
-              <TextInput
-                style={commonStyles.input}
-                placeholder="Allergies"
-                value={formData.allergies}
-                onChangeText={(text) => setFormData({ ...formData, allergies: text })}
-                multiline
+                placeholder="Email *"
+                value={formData.email}
+                onChangeText={(text) => setFormData({ ...formData, email: text })}
+                keyboardType="email-address"
+                autoCapitalize="none"
               />
               <TextInput
                 style={commonStyles.input}
-                placeholder="Medical Information"
-                value={formData.medical_info}
-                onChangeText={(text) => setFormData({ ...formData, medical_info: text })}
+                placeholder="Phone"
+                value={formData.phone}
+                onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                keyboardType="phone-pad"
+              />
+              <TextInput
+                style={commonStyles.input}
+                placeholder="Address"
+                value={formData.address}
+                onChangeText={(text) => setFormData({ ...formData, address: text })}
                 multiline
               />
 
@@ -311,7 +289,7 @@ export default function ChildrenScreen() {
               />
               <TextInput
                 style={commonStyles.input}
-                placeholder="Relationship (e.g., Grandparent, Aunt)"
+                placeholder="Relationship (e.g., Spouse, Sibling)"
                 value={formData.emergency_contact_relationship}
                 onChangeText={(text) => setFormData({ ...formData, emergency_contact_relationship: text })}
               />
@@ -361,16 +339,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
   },
-  childHeader: {
+  parentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 8,
   },
-  childInfo: {
+  parentInfo: {
     flex: 1,
   },
-  childName: {
+  parentName: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.text,
@@ -425,28 +403,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: 12,
     marginBottom: 8,
-  },
-  parentSelector: {
-    marginBottom: 12,
-  },
-  parentOption: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 8,
-  },
-  parentOptionSelected: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
-  },
-  parentOptionText: {
-    fontSize: 14,
-    color: colors.text,
-  },
-  parentOptionTextSelected: {
-    fontWeight: '600',
-    color: colors.primary,
   },
   modalButtons: {
     flexDirection: 'row',

@@ -14,15 +14,17 @@ import {
 import { supabase } from '@/lib/supabase';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { Child, User } from '@/types/database.types';
+import { Child, User, Staff } from '@/types/database.types';
 
 export default function ChildrenScreen() {
   const [children, setChildren] = useState<Child[]>([]);
   const [parents, setParents] = useState<User[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [parentPickerVisible, setParentPickerVisible] = useState(false);
+  const [teacherPickerVisible, setTeacherPickerVisible] = useState(false);
   const [genderPickerVisible, setGenderPickerVisible] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [formData, setFormData] = useState({
@@ -31,6 +33,7 @@ export default function ChildrenScreen() {
     dob: '',
     gender: '',
     parent_id: '',
+    assigned_teacher_id: '',
     allergies: '',
     medical_info: '',
     blood_type: '',
@@ -53,16 +56,19 @@ export default function ChildrenScreen() {
 
   const loadData = async () => {
     try {
-      const [childrenResult, parentsResult] = await Promise.all([
+      const [childrenResult, parentsResult, staffResult] = await Promise.all([
         supabase.from('children').select('*').order('first_name', { ascending: true }),
         supabase.from('users').select('*').eq('role', 'parent').order('first_name', { ascending: true }),
+        supabase.from('staff').select('*').eq('is_active', true).order('first_name', { ascending: true }),
       ]);
 
       if (childrenResult.error) throw childrenResult.error;
       if (parentsResult.error) throw parentsResult.error;
+      if (staffResult.error) throw staffResult.error;
 
       setChildren(childrenResult.data || []);
       setParents(parentsResult.data || []);
+      setStaff(staffResult.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
       Alert.alert('Error', 'Failed to load data');
@@ -85,6 +91,7 @@ export default function ChildrenScreen() {
       dob: '',
       gender: '',
       parent_id: '',
+      assigned_teacher_id: '',
       allergies: '',
       medical_info: '',
       blood_type: '',
@@ -111,6 +118,7 @@ export default function ChildrenScreen() {
       dob: child.dob,
       gender: child.gender || '',
       parent_id: child.parent_id,
+      assigned_teacher_id: child.assigned_teacher_id || '',
       allergies: child.allergies || '',
       medical_info: child.medical_info || '',
       blood_type: child.blood_type || '',
@@ -140,6 +148,7 @@ export default function ChildrenScreen() {
         ...formData,
         gender: formData.gender || null,
         blood_type: formData.blood_type || null,
+        assigned_teacher_id: formData.assigned_teacher_id || null,
       };
 
       if (editingChild) {
@@ -201,9 +210,25 @@ export default function ChildrenScreen() {
     return parent ? `${parent.first_name} ${parent.last_name}` : 'Unknown';
   };
 
+  const getTeacherName = (teacherId: string | undefined) => {
+    if (!teacherId) return 'Not Assigned';
+    const teacher = staff.find((s) => s.staff_id === teacherId);
+    return teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Unknown';
+  };
+
   const selectParent = (parentId: string) => {
     setFormData({ ...formData, parent_id: parentId });
     setParentPickerVisible(false);
+  };
+
+  const selectTeacher = (teacherId: string) => {
+    setFormData({ ...formData, assigned_teacher_id: teacherId });
+    setTeacherPickerVisible(false);
+  };
+
+  const clearTeacher = () => {
+    setFormData({ ...formData, assigned_teacher_id: '' });
+    setTeacherPickerVisible(false);
   };
 
   const selectGender = (gender: string) => {
@@ -244,6 +269,9 @@ export default function ChildrenScreen() {
                   </Text>
                   <Text style={commonStyles.textSecondary}>
                     Parent: {getParentName(child.parent_id)}
+                  </Text>
+                  <Text style={styles.teacherText}>
+                    👨‍🏫 Teacher: {getTeacherName(child.assigned_teacher_id)}
                   </Text>
                   <Text style={commonStyles.textSecondary}>
                     DOB: {new Date(child.dob).toLocaleDateString()} • Age: {new Date().getFullYear() - new Date(child.dob).getFullYear()}
@@ -345,6 +373,16 @@ export default function ChildrenScreen() {
               >
                 <Text style={formData.parent_id ? styles.pickerText : styles.pickerPlaceholder}>
                   {formData.parent_id ? getParentName(formData.parent_id) : 'Select Parent *'}
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={styles.sectionTitle}>Teacher Assignment</Text>
+              <TouchableOpacity
+                style={[commonStyles.input, styles.pickerButton]}
+                onPress={() => setTeacherPickerVisible(true)}
+              >
+                <Text style={formData.assigned_teacher_id ? styles.pickerText : styles.pickerPlaceholder}>
+                  {formData.assigned_teacher_id ? getTeacherName(formData.assigned_teacher_id) : 'Select Teacher (Optional)'}
                 </Text>
               </TouchableOpacity>
 
@@ -515,6 +553,46 @@ export default function ChildrenScreen() {
         </View>
       </Modal>
 
+      {/* Teacher Picker Modal */}
+      <Modal visible={teacherPickerVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.pickerModal}>
+            <Text style={styles.pickerModalTitle}>Select Teacher</Text>
+            <ScrollView>
+              <TouchableOpacity
+                style={styles.pickerOption}
+                onPress={clearTeacher}
+              >
+                <Text style={[styles.pickerOptionText, { color: colors.textSecondary }]}>
+                  No Teacher (Clear Assignment)
+                </Text>
+              </TouchableOpacity>
+              {staff.map((teacher) => (
+                <TouchableOpacity
+                  key={teacher.staff_id}
+                  style={styles.pickerOption}
+                  onPress={() => selectTeacher(teacher.staff_id)}
+                >
+                  <Text style={styles.pickerOptionText}>
+                    {teacher.first_name} {teacher.last_name}
+                  </Text>
+                  <Text style={styles.pickerOptionSubtext}>
+                    {teacher.role.charAt(0).toUpperCase() + teacher.role.slice(1)}
+                    {teacher.specialization && ` • ${teacher.specialization}`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={[buttonStyles.outline, { marginTop: 16 }]}
+              onPress={() => setTeacherPickerVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Gender Picker Modal */}
       <Modal visible={genderPickerVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
@@ -587,6 +665,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
+  },
+  teacherText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '600',
+    marginTop: 2,
   },
   allergyText: {
     fontSize: 14,

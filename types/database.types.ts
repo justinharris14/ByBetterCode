@@ -25,6 +25,20 @@ export interface User {
   secondary_emergency_contact_relationship?: string;
 }
 
+export interface Staff {
+  staff_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  role: 'teacher' | 'assistant' | 'coordinator' | 'other';
+  specialization?: string;
+  qualifications?: string;
+  hire_date?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface Child {
   child_id: string;
   first_name: string;
@@ -34,6 +48,7 @@ export interface Child {
   allergies?: string;
   medical_info?: string;
   parent_id: string;
+  assigned_teacher_id?: string;
   created_at: string;
   // Medical information
   blood_type?: string;

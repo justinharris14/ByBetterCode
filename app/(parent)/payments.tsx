@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -25,13 +25,7 @@ export default function ParentPaymentsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      loadPayments();
-    }
-  }, [user]);
-
-  const loadPayments = async () => {
+  const loadPayments = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -53,7 +47,13 @@ export default function ParentPaymentsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadPayments();
+    }
+  }, [user, loadPayments]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -139,7 +139,7 @@ export default function ParentPaymentsScreen() {
 
       // For mobile, download the file
       const filename = `receipt_${payment.payment_id}.pdf`;
-      const fileUri = FileSystem.documentDirectory + filename;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
 
       Alert.alert('Downloading', 'Downloading receipt...');
 

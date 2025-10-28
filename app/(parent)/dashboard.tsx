@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -55,87 +55,7 @@ export default function ParentDashboard() {
   const absenceChannelRef = useRef<any>(null);
   const eventChannelRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadStats();
-      loadNotifications();
-      setupRealtimeSubscription();
-    }
-
-    return () => {
-      // Proper cleanup using supabase.removeChannel
-      if (absenceChannelRef.current) {
-        console.log('Cleaning up absence channel');
-        supabase.removeChannel(absenceChannelRef.current);
-        absenceChannelRef.current = null;
-      }
-      if (eventChannelRef.current) {
-        console.log('Cleaning up event channel');
-        supabase.removeChannel(eventChannelRef.current);
-        eventChannelRef.current = null;
-      }
-    };
-  }, [user]);
-
-  const setupRealtimeSubscription = () => {
-    if (!user) return;
-
-    console.log('Setting up realtime subscription for parent:', user.user_id);
-
-    // Check if already subscribed to prevent multiple subscriptions
-    if (absenceChannelRef.current?.state === 'subscribed') {
-      console.log('Already subscribed to absence notifications');
-      return;
-    }
-
-    // Subscribe to absence notifications
-    const absenceChannel = supabase
-      .channel('absence_notifications_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'absence_notifications',
-          filter: `parent_id=eq.${user.user_id}`,
-        },
-        (payload) => {
-          console.log('New absence notification received:', payload);
-          loadNotifications();
-          loadStats();
-        }
-      )
-      .subscribe((status) => {
-        console.log('Absence channel status:', status);
-      });
-
-    absenceChannelRef.current = absenceChannel;
-
-    // Subscribe to event notifications
-    const eventChannel = supabase
-      .channel('event_notifications_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'event_notifications',
-          filter: `parent_id=eq.${user.user_id}`,
-        },
-        (payload) => {
-          console.log('New event notification received:', payload);
-          loadNotifications();
-          loadStats();
-        }
-      )
-      .subscribe((status) => {
-        console.log('Event channel status:', status);
-      });
-
-    eventChannelRef.current = eventChannel;
-  };
-
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -200,9 +120,9 @@ export default function ParentDashboard() {
     } catch (error) {
       console.error('Error loading stats:', error);
     }
-  };
+  }, [user]);
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -249,7 +169,87 @@ export default function ParentDashboard() {
     } catch (error) {
       console.error('Error in loadNotifications:', error);
     }
-  };
+  }, [user]);
+
+  const setupRealtimeSubscription = useCallback(() => {
+    if (!user) return;
+
+    console.log('Setting up realtime subscription for parent:', user.user_id);
+
+    // Check if already subscribed to prevent multiple subscriptions
+    if (absenceChannelRef.current?.state === 'subscribed') {
+      console.log('Already subscribed to absence notifications');
+      return;
+    }
+
+    // Subscribe to absence notifications
+    const absenceChannel = supabase
+      .channel('absence_notifications_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'absence_notifications',
+          filter: `parent_id=eq.${user.user_id}`,
+        },
+        (payload) => {
+          console.log('New absence notification received:', payload);
+          loadNotifications();
+          loadStats();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Absence channel status:', status);
+      });
+
+    absenceChannelRef.current = absenceChannel;
+
+    // Subscribe to event notifications
+    const eventChannel = supabase
+      .channel('event_notifications_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'event_notifications',
+          filter: `parent_id=eq.${user.user_id}`,
+        },
+        (payload) => {
+          console.log('New event notification received:', payload);
+          loadNotifications();
+          loadStats();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Event channel status:', status);
+      });
+
+    eventChannelRef.current = eventChannel;
+  }, [user, loadNotifications, loadStats]);
+
+  useEffect(() => {
+    if (user) {
+      loadStats();
+      loadNotifications();
+      setupRealtimeSubscription();
+    }
+
+    return () => {
+      // Proper cleanup using supabase.removeChannel
+      if (absenceChannelRef.current) {
+        console.log('Cleaning up absence channel');
+        supabase.removeChannel(absenceChannelRef.current);
+        absenceChannelRef.current = null;
+      }
+      if (eventChannelRef.current) {
+        console.log('Cleaning up event channel');
+        supabase.removeChannel(eventChannelRef.current);
+        eventChannelRef.current = null;
+      }
+    };
+  }, [user, loadStats, loadNotifications, setupRealtimeSubscription]);
 
   const markNotificationAsRead = async (notificationId: string, type: 'absence' | 'event') => {
     try {

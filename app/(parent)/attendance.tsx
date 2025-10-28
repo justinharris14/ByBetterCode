@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,13 +24,7 @@ export default function ParentAttendanceScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadAttendance();
-    }
-  }, [user]);
-
-  const loadAttendance = async () => {
+  const loadAttendance = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -72,7 +66,13 @@ export default function ParentAttendanceScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadAttendance();
+    }
+  }, [user, loadAttendance]);
 
   const onRefresh = async () => {
     setRefreshing(true);

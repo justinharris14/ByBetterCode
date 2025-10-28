@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,13 +19,7 @@ export default function ParentChildrenScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadChildren();
-    }
-  }, [user]);
-
-  const loadChildren = async () => {
+  const loadChildren = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -42,7 +36,13 @@ export default function ParentChildrenScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadChildren();
+    }
+  }, [user, loadChildren]);
 
   const onRefresh = async () => {
     setRefreshing(true);

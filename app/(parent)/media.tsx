@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -20,11 +20,7 @@ export default function ParentMediaScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadMedia();
-  }, [user]);
-
-  const loadMedia = async () => {
+  const loadMedia = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -58,7 +54,11 @@ export default function ParentMediaScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadMedia();
+  }, [loadMedia]);
 
   const onRefresh = async () => {
     setRefreshing(true);

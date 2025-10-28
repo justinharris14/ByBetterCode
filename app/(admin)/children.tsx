@@ -85,7 +85,7 @@ export default function ChildrenScreen() {
   };
 
   const handleSave = async () => {
-    if (!formData.first_name || !formData.last_name || !formData.dob) {
+    if (!formData.first_name || !formData.last_name || !formData.dob || !formData.parent_id) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -216,30 +216,35 @@ export default function ChildrenScreen() {
               <TextInput
                 style={commonStyles.input}
                 placeholder="First Name *"
+                placeholderTextColor={colors.textSecondary}
                 value={formData.first_name}
                 onChangeText={(text) => setFormData({ ...formData, first_name: text })}
               />
               <TextInput
                 style={commonStyles.input}
                 placeholder="Last Name *"
+                placeholderTextColor={colors.textSecondary}
                 value={formData.last_name}
                 onChangeText={(text) => setFormData({ ...formData, last_name: text })}
               />
               <TextInput
                 style={commonStyles.input}
                 placeholder="Date of Birth (YYYY-MM-DD) *"
+                placeholderTextColor={colors.textSecondary}
                 value={formData.dob}
                 onChangeText={(text) => setFormData({ ...formData, dob: text })}
               />
               <TextInput
                 style={commonStyles.input}
                 placeholder="Parent ID *"
+                placeholderTextColor={colors.textSecondary}
                 value={formData.parent_id}
                 onChangeText={(text) => setFormData({ ...formData, parent_id: text })}
               />
               <TextInput
                 style={commonStyles.input}
                 placeholder="Allergies"
+                placeholderTextColor={colors.textSecondary}
                 value={formData.allergies}
                 onChangeText={(text) => setFormData({ ...formData, allergies: text })}
                 multiline
@@ -247,6 +252,7 @@ export default function ChildrenScreen() {
               <TextInput
                 style={commonStyles.input}
                 placeholder="Medical Information"
+                placeholderTextColor={colors.textSecondary}
                 value={formData.medical_info}
                 onChangeText={(text) => setFormData({ ...formData, medical_info: text })}
                 multiline

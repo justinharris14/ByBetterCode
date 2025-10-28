@@ -9,10 +9,10 @@ import {
   RefreshControl,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Attendance, Child } from '@/types/database.types';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/IconSymbol';
+import { useAuth } from '@/contexts/AuthContext';
+import { Attendance, Child } from '@/types/database.types';
 
 interface AttendanceWithChild extends Attendance {
   child?: Child;
@@ -25,7 +25,9 @@ export default function ParentAttendanceScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    loadAttendance();
+    if (user) {
+      loadAttendance();
+    }
   }, [user]);
 
   const loadAttendance = async () => {
@@ -39,7 +41,7 @@ export default function ParentAttendanceScreen() {
 
       if (childrenError) throw childrenError;
 
-      const childIds = childrenData?.map(c => c.child_id) || [];
+      const childIds = childrenData?.map((c) => c.child_id) || [];
 
       if (childIds.length === 0) {
         setAttendance([]);
@@ -51,14 +53,23 @@ export default function ParentAttendanceScreen() {
         .from('attendance')
         .select(`
           *,
-          children:child_id (*)
+          children:child_id (
+            first_name,
+            last_name
+          )
         `)
         .in('child_id', childIds)
         .order('date', { ascending: false })
-        .limit(50);
+        .limit(30);
 
       if (attendanceError) throw attendanceError;
-      setAttendance(attendanceData || []);
+
+      const formattedData = attendanceData?.map((record: any) => ({
+        ...record,
+        child: record.children,
+      })) || [];
+
+      setAttendance(formattedData);
     } catch (error) {
       console.error('Error loading attendance:', error);
       Alert.alert('Error', 'Failed to load attendance');
@@ -90,29 +101,34 @@ export default function ParentAttendanceScreen() {
       >
         {attendance.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No attendance records</Text>
+            <Text style={styles.emptyText}>No attendance records yet</Text>
           </View>
         ) : (
           attendance.map((record) => (
-            <View key={record.attendance_id} style={commonStyles.cardWhite}>
-              <View style={styles.attendanceRow}>
-                <View style={styles.attendanceInfo}>
-                  <Text style={styles.date}>{new Date(record.date).toLocaleDateString()}</Text>
+            <View
+              key={record.attendance_id}
+              style={[
+                commonStyles.cardWhite,
+                record.is_present ? styles.presentCard : styles.absentCard,
+              ]}
+            >
+              <View style={styles.recordHeader}>
+                <View style={styles.recordInfo}>
+                  <Text style={styles.childName}>
+                    {record.child?.first_name} {record.child?.last_name}
+                  </Text>
                   <Text style={commonStyles.textSecondary}>
-                    Child ID: {record.child_id}
+                    {new Date(record.date).toLocaleDateString()}
                   </Text>
                 </View>
-                <View style={[
-                  styles.statusBadge,
-                  record.is_present ? styles.presentBadge : styles.absentBadge
-                ]}>
-                  <IconSymbol
-                    name={record.is_present ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
-                    size={24}
-                    color={colors.white}
-                  />
+                <View
+                  style={[
+                    styles.statusBadge,
+                    record.is_present ? styles.presentBadge : styles.absentBadge,
+                  ]}
+                >
                   <Text style={styles.statusText}>
-                    {record.is_present ? 'Present' : 'Absent'}
+                    {record.is_present ? '✓ Present' : '✗ Absent'}
                   </Text>
                 </View>
               </View>
@@ -139,26 +155,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
   },
-  attendanceRow: {
+  presentCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.success,
+  },
+  absentCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.accent,
+  },
+  recordHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  attendanceInfo: {
+  recordInfo: {
     flex: 1,
   },
-  date: {
-    fontSize: 18,
+  childName: {
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   presentBadge: {
     backgroundColor: colors.success,
@@ -167,9 +189,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   statusText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.white,
-    marginLeft: 8,
   },
 });

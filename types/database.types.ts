@@ -1,5 +1,5 @@
 
-export type UserRole = 'admin' | 'parent' | 'teacher';
+export type UserRole = 'admin' | 'parent';
 
 export interface User {
   user_id: string;
@@ -30,7 +30,6 @@ export interface Attendance {
   is_present: boolean;
   marked_by: string;
   created_at: string;
-  notes?: string;
 }
 
 export interface Event {
@@ -39,6 +38,25 @@ export interface Event {
   description: string;
   event_datetime: string;
   created_by_id: string;
+  created_at: string;
+}
+
+export interface EventNotification {
+  notification_id: string;
+  event_id: string;
+  parent_id: string;
+  sent_at: string;
+  is_read: boolean;
+}
+
+export interface Payment {
+  payment_id: string;
+  parent_id: string;
+  amount: number;
+  payment_type: string;
+  status: 'pending' | 'paid' | 'overdue';
+  payment_date: string;
+  receipt_url?: string;
   created_at: string;
 }
 

@@ -1,140 +1,185 @@
 
 # CrècheConnect - Quick Start Guide
 
-## 🚀 Getting Started (3 Steps)
+## Getting Started
 
-### Step 1: Open the App
-Launch the CrècheConnect app on your device or emulator.
+### 1. First Time Setup
+When you first open the app, you'll see the login screen with a "Setup Demo Data" button.
 
-### Step 2: Create Demo Accounts
-You'll see the Setup screen. Click **"Create Demo Accounts"** and wait for completion.
+**Click "Setup Demo Data"** to automatically create:
+- Demo admin account
+- Demo parent accounts
+- Sample children
+- Sample events
+- Sample announcements
+- Sample attendance records
+- Sample media
 
-### Step 3: Login
-Use one of these demo accounts:
+This process takes about 10-15 seconds.
 
-**👩‍💼 Admin Access:**
-```
-Email: admin@crecheconnect.com
-Password: admin123
-```
+### 2. Login Credentials
 
-**👨‍👩‍👧 Parent Access:**
-```
-Email: thabo@example.com
-Password: parent123
-```
+#### Admin Account
+- **Email**: admin@crecheconnect.com
+- **Password**: admin123
 
----
+#### Parent Accounts
+1. **Thabo Dlamini**
+   - Email: thabo@example.com
+   - Password: parent123
+   - Children: Sipho (5 years), Kabelo (3 years)
 
-## 📱 What You Can Do
+2. **Naledi Khumalo**
+   - Email: naledi@example.com
+   - Password: parent123
+   - Child: Amahle (4 years)
 
-### As Admin
-- ✅ View dashboard statistics
-- ✅ Manage all children
-- ✅ Mark daily attendance
-- ✅ Create events and announcements
-- ✅ Upload photos/videos
-- ✅ View all payments
+### 3. Admin Features
 
-### As Parent
-- ✅ View your children's profiles
-- ✅ Check attendance history
-- ✅ See upcoming events
-- ✅ Read announcements
-- ✅ View photos/videos of your children
-- ✅ Track payments
+#### Dashboard
+- View statistics: Total children, events, attendance rate
+- Quick access to all management sections
 
----
+#### Manage Children
+- Add new children (requires: name, DOB, parent ID)
+- Edit existing children
+- Delete children
+- View all registered children
 
-## 🔧 If Setup Fails
+#### Mark Attendance
+- Select date using arrow buttons
+- Tap on child card to toggle Present/Absent
+- Visual indicators show attendance status
+- Green = Present, Red = Absent
 
-### Manual Setup (2 minutes)
+#### Manage Events
+- Create events with title, description, and date/time
+- Edit or delete existing events
+- All parents can view events
 
-1. Go to: https://supabase.com/dashboard/project/bldlekwvgeatnqjwiowq
-2. Click: **Authentication** → **Users** → **Add User**
-3. Create admin user:
-   - Email: `admin@crecheconnect.com`
-   - Password: `admin123`
-   - Click "Add metadata" and paste:
-     ```json
-     {
-       "first_name": "Lindiwe",
-       "last_name": "Mkhize",
-       "phone": "+27123456789",
-       "role": "admin"
-     }
-     ```
-4. Repeat for parent users (see SETUP_INSTRUCTIONS.md)
+#### Post Announcements
+- Create announcements with title and message
+- All parents can view announcements
+- Delete old announcements
 
----
+#### Media Gallery
+- View uploaded media
+- Upload photos/videos (requires Supabase Storage setup)
+- Track consent for media sharing
 
-## ⚠️ Common Issues
+### 4. Parent Features
 
-### "Invalid login credentials"
-**Fix:** Make sure you created the demo accounts first (Step 2 above)
+#### Dashboard
+- View number of children
+- View upcoming events count
+- Quick navigation to all sections
 
-### "Email not confirmed"
-**Fix:** Go to Supabase Dashboard → Authentication → Settings → Disable "Enable email confirmations"
+#### My Children
+- View all your children's profiles
+- See details: name, age, DOB, allergies, medical info
 
-### "Database error creating new user"
-**Fix:** This has been fixed! If you still see it, check SETUP_INSTRUCTIONS.md
+#### Attendance History
+- View last 30 days of attendance
+- See which days your children were present/absent
+- Color-coded cards for easy viewing
 
----
+#### View Events
+- See all upcoming events
+- View event details and countdown
+- Plan ahead for school activities
 
-## 📚 More Help
+#### Read Announcements
+- Stay updated with school news
+- View announcement history
 
-- **Detailed Setup:** See `SETUP_INSTRUCTIONS.md`
-- **What Was Fixed:** See `FIX_SUMMARY.md`
-- **App Overview:** See `APP_OVERVIEW.md`
-- **Database Setup:** See `SUPABASE_SETUP.md`
+#### Media Gallery
+- View photos and videos of your children
+- Only shows media with consent granted
+- Download or share media
 
----
+### 5. Navigation
 
-## 🎯 Demo Data Included
+#### Admin Navigation
+Bottom tab bar with 5 tabs:
+- Dashboard (Home icon)
+- Children (People icon)
+- Attendance (Checkmark icon)
+- Events (Calendar icon)
+- Announcements (Megaphone icon)
 
-- **3 Users:** 1 Admin, 2 Parents
-- **3 Children:** Sipho, Kabelo, Amahle
-- **2 Events:** Sports Day, Parent Meeting
-- **2 Announcements:** Welcome Back, Fees Due
-- **3 Payments:** Various statuses
-- **3 Media Items:** Photos with consent
-- **21 Attendance Records:** Last 7 days for all children
+#### Parent Navigation
+Bottom tab bar with 5 tabs:
+- Dashboard (Home icon)
+- Children (People icon)
+- Attendance (Checkmark icon)
+- Events (Calendar icon)
+- Announcements (Megaphone icon)
 
----
+### 6. Tips & Tricks
 
-## 💡 Pro Tips
+#### For Admins
+- Use pull-to-refresh on any screen to reload data
+- When adding children, you need the parent's user_id (found in users table)
+- Mark attendance daily for accurate statistics
+- Create events in advance so parents can plan
 
-1. **Pull to refresh** on any list screen to reload data
-2. **Tap demo buttons** on login screen to auto-fill credentials
-3. **Check the setup link** on login if you need to recreate accounts
-4. **Use admin account** to see full functionality
-5. **Use parent account** to see restricted view
+#### For Parents
+- Check attendance regularly to track your child's presence
+- Read announcements for important updates
+- View events to stay informed about school activities
+- Pull down to refresh any screen
 
----
+### 7. Common Tasks
 
-## ✅ Verification Checklist
+#### Adding a New Child (Admin)
+1. Go to Children tab
+2. Tap "+ Add Child"
+3. Fill in: First Name, Last Name, DOB, Parent ID
+4. Optionally add: Allergies, Medical Info
+5. Tap "Save"
 
-After setup, verify everything works:
+#### Marking Attendance (Admin)
+1. Go to Attendance tab
+2. Select the date (default is today)
+3. Tap on each child's card to mark Present/Absent
+4. Status updates immediately
 
-- [ ] Can login as admin
-- [ ] Can see admin dashboard with stats
-- [ ] Can view children list
-- [ ] Can mark attendance
-- [ ] Can logout
-- [ ] Can login as parent
-- [ ] Can see parent dashboard
-- [ ] Can view own children only
-- [ ] Can see attendance history
+#### Creating an Event (Admin)
+1. Go to Events tab
+2. Tap "+ Add Event"
+3. Fill in: Title, Description, Date/Time (YYYY-MM-DD HH:MM:SS)
+4. Tap "Save"
 
----
+#### Posting an Announcement (Admin)
+1. Go to Announcements tab
+2. Tap "+ Add Announcement"
+3. Fill in: Title, Message
+4. Tap "Save"
 
-## 🆘 Need Help?
+### 8. Troubleshooting
 
-1. Check the console logs for detailed error messages
-2. Review Supabase logs: Dashboard → Logs → Auth
-3. Verify migrations: Dashboard → Database → Migrations
-4. Read the troubleshooting section in SETUP_INSTRUCTIONS.md
+#### Can't Login?
+- Make sure you ran "Setup Demo Data" first
+- Check that you're using the correct email and password
+- Try refreshing the app
 
----
+#### No Data Showing?
+- Pull down to refresh the screen
+- Check your internet connection
+- Verify Supabase is configured correctly
 
-**You're all set! Enjoy using CrècheConnect! 🏫**
+#### Can't Add Children?
+- Make sure you have the correct parent_id
+- Check that all required fields are filled
+- Date format should be YYYY-MM-DD
+
+### 9. Sign Out
+- Tap the sign-out icon (arrow in square) in the top-right corner of the dashboard
+- You'll be redirected to the login screen
+
+### 10. Need Help?
+- Check the CURRENT_STATE.md file for detailed feature information
+- Review the APP_OVERVIEW.md for architecture details
+- Check the SETUP_INSTRUCTIONS.md for technical setup
+
+## Enjoy using CrècheConnect! 🎉

@@ -46,10 +46,9 @@ export default function AdminDashboard() {
       const totalChildren = childrenData.count || 0;
       const totalEvents = eventsData.count || 0;
       const attendanceRecords = attendanceData.data || [];
-      const presentCount = attendanceRecords.filter(a => a.is_present).length;
-      const attendanceRate = totalChildren > 0 
-        ? Math.round((presentCount / totalChildren) * 100) 
-        : 0;
+      const presentCount = attendanceRecords.filter((a) => a.is_present).length;
+      const attendanceRate =
+        totalChildren > 0 ? Math.round((presentCount / totalChildren) * 100) : 0;
 
       setStats({
         totalChildren,
@@ -90,8 +89,8 @@ export default function AdminDashboard() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Welcome Back!</Text>
-            <Text style={styles.subtitle}>Admin Dashboard</Text>
+            <Text style={styles.greeting}>Admin Dashboard</Text>
+            <Text style={styles.subtitle}>CrècheConnect Management</Text>
           </View>
           <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
             <IconSymbol name="arrow.right.square" size={24} color={colors.accent} />
@@ -120,7 +119,7 @@ export default function AdminDashboard() {
 
         <View style={styles.quickActions}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-          
+
           <TouchableOpacity
             style={styles.actionCard}
             onPress={() => router.push('/(admin)/children')}
@@ -128,7 +127,7 @@ export default function AdminDashboard() {
             <IconSymbol name="people" size={24} color={colors.primary} />
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Manage Children</Text>
-              <Text style={styles.actionDescription}>Add, edit, or view children</Text>
+              <Text style={styles.actionDescription}>Add, edit, or remove children</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -140,7 +139,7 @@ export default function AdminDashboard() {
             <IconSymbol name="check.circle" size={24} color={colors.success} />
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Mark Attendance</Text>
-              <Text style={styles.actionDescription}>Record daily attendance</Text>
+              <Text style={styles.actionDescription}>Track daily attendance</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -164,7 +163,7 @@ export default function AdminDashboard() {
             <IconSymbol name="megaphone" size={24} color={colors.accent} />
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Announcements</Text>
-              <Text style={styles.actionDescription}>Post updates for parents</Text>
+              <Text style={styles.actionDescription}>Post school updates</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -176,7 +175,7 @@ export default function AdminDashboard() {
             <IconSymbol name="photo" size={24} color={colors.primary} />
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Media Gallery</Text>
-              <Text style={styles.actionDescription}>Upload and manage photos</Text>
+              <Text style={styles.actionDescription}>Upload photos and videos</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -214,13 +213,11 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
     marginBottom: 24,
   },
   statCard: {
     flex: 1,
-    minWidth: '30%',
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,

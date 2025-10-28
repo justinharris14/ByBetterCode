@@ -139,7 +139,7 @@ export default function ParentPaymentsScreen() {
 
       // For mobile, download the file
       const filename = `receipt_${payment.payment_id}.pdf`;
-      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+      const fileUri = (FileSystem.documentDirectory || '') + filename;
 
       Alert.alert('Downloading', 'Downloading receipt...');
 

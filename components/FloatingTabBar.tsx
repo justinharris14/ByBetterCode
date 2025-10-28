@@ -39,7 +39,7 @@ interface FloatingTabBarProps {
 export default function FloatingTabBar({
   tabs,
   containerWidth = screenWidth - 40,
-  borderRadius = 30,
+  borderRadius = 35,
   bottomMargin
 }: FloatingTabBarProps) {
   const router = useRouter();
@@ -183,7 +183,7 @@ export default function FloatingTabBar({
                   <View style={styles.tabContent}>
                     <IconSymbol
                       name={tab.icon}
-                      size={32}
+                      size={40}
                       color={isActive ? theme.colors.primary : (theme.dark ? '#98989D' : '#8E8E93')}
                     />
                     <Text
@@ -230,34 +230,34 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: 'absolute',
-    top: 10,
-    left: 10,
-    bottom: 10,
-    borderRadius: 22,
+    top: 12,
+    left: 12,
+    bottom: 12,
+    borderRadius: 28,
     width: `${(100 / 2) - 3}%`, // Default for 2 tabs, will be overridden by dynamic styles
     // Dynamic styling applied in component
   },
   tabsContainer: {
     flexDirection: 'row',
-    height: 85,
+    height: 110,
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 6,
   },
   tabLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
-    marginTop: 4,
+    marginTop: 6,
     // Dynamic styling applied in component
   },
 });

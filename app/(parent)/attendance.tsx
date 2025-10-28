@@ -34,6 +34,7 @@ export default function ParentAttendanceScreen() {
     if (!user) return;
 
     try {
+      // Get all children for this parent
       const { data: childrenData, error: childrenError } = await supabase
         .from('children')
         .select('child_id')
@@ -49,18 +50,13 @@ export default function ParentAttendanceScreen() {
         return;
       }
 
+      // Get attendance records for these children
       const { data: attendanceData, error: attendanceError } = await supabase
         .from('attendance')
-        .select(`
-          *,
-          children:child_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select('*, children(*)')
         .in('child_id', childIds)
         .order('date', { ascending: false })
-        .limit(30);
+        .limit(50);
 
       if (attendanceError) throw attendanceError;
 
@@ -72,7 +68,7 @@ export default function ParentAttendanceScreen() {
       setAttendance(formattedData);
     } catch (error) {
       console.error('Error loading attendance:', error);
-      Alert.alert('Error', 'Failed to load attendance');
+      Alert.alert('Error', 'Failed to load attendance records');
     } finally {
       setLoading(false);
     }
@@ -94,6 +90,10 @@ export default function ParentAttendanceScreen() {
 
   return (
     <View style={commonStyles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Attendance History</Text>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -101,6 +101,7 @@ export default function ParentAttendanceScreen() {
       >
         {attendance.length === 0 ? (
           <View style={styles.emptyState}>
+            <IconSymbol name="checkmark.circle" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No attendance records yet</Text>
           </View>
         ) : (
@@ -108,29 +109,36 @@ export default function ParentAttendanceScreen() {
             <View
               key={record.attendance_id}
               style={[
-                commonStyles.cardWhite,
+                styles.attendanceCard,
                 record.is_present ? styles.presentCard : styles.absentCard,
               ]}
             >
-              <View style={styles.recordHeader}>
-                <View style={styles.recordInfo}>
+              <View style={styles.cardHeader}>
+                <View style={styles.statusIcon}>
+                  <IconSymbol
+                    name={record.is_present ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
+                    size={32}
+                    color={record.is_present ? colors.success : colors.accent}
+                  />
+                </View>
+                <View style={styles.cardInfo}>
                   <Text style={styles.childName}>
                     {record.child?.first_name} {record.child?.last_name}
                   </Text>
-                  <Text style={commonStyles.textSecondary}>
-                    {new Date(record.date).toLocaleDateString()}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    record.is_present ? styles.presentBadge : styles.absentBadge,
-                  ]}
-                >
                   <Text style={styles.statusText}>
-                    {record.is_present ? '✓ Present' : '✗ Absent'}
+                    {record.is_present ? 'Present' : 'Absent'}
                   </Text>
                 </View>
+              </View>
+              <View style={styles.cardFooter}>
+                <Text style={styles.dateText}>
+                  {new Date(record.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </Text>
               </View>
             </View>
           ))
@@ -141,11 +149,24 @@ export default function ParentAttendanceScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    padding: 20,
+    paddingBottom: 12,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.text,
+  },
   scrollView: {
     flex: 1,
   },
   content: {
     padding: 20,
+    paddingBottom: 140,
   },
   emptyState: {
     padding: 40,
@@ -154,21 +175,30 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: colors.textSecondary,
+    marginTop: 16,
+  },
+  attendanceCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderLeftWidth: 4,
   },
   presentCard: {
-    borderLeftWidth: 4,
     borderLeftColor: colors.success,
   },
   absentCard: {
-    borderLeftWidth: 4,
     borderLeftColor: colors.accent,
   },
-  recordHeader: {
+  cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  recordInfo: {
+  statusIcon: {
+    marginRight: 12,
+  },
+  cardInfo: {
     flex: 1,
   },
   childName: {
@@ -177,20 +207,17 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 4,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  presentBadge: {
-    backgroundColor: colors.success,
-  },
-  absentBadge: {
-    backgroundColor: colors.accent,
-  },
   statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.white,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  cardFooter: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  dateText: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
 });

@@ -36,11 +36,15 @@ export default function AdminDashboard() {
   const loadStats = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
+      const now = new Date().toISOString();
 
       const [childrenData, eventsData, attendanceData] = await Promise.all([
         supabase.from('children').select('child_id', { count: 'exact' }),
-        supabase.from('events').select('event_id', { count: 'exact' }),
-        supabase.from('attendance').select('is_present').eq('date', today),
+        supabase
+          .from('events')
+          .select('event_id', { count: 'exact' })
+          .gte('event_datetime', now),
+        supabase.from('attendance').select('*').eq('date', today),
       ]);
 
       const totalChildren = childrenData.count || 0;
@@ -48,7 +52,9 @@ export default function AdminDashboard() {
       const attendanceRecords = attendanceData.data || [];
       const presentCount = attendanceRecords.filter((a) => a.is_present).length;
       const attendanceRate =
-        totalChildren > 0 ? Math.round((presentCount / totalChildren) * 100) : 0;
+        attendanceRecords.length > 0
+          ? Math.round((presentCount / attendanceRecords.length) * 100)
+          : 0;
 
       setStats({
         totalChildren,
@@ -99,21 +105,21 @@ export default function AdminDashboard() {
 
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <IconSymbol name="people" size={32} color={colors.primary} />
+            <IconSymbol name="figure.2.and.child.holdinghands" size={32} color={colors.primary} />
             <Text style={styles.statValue}>{stats.totalChildren}</Text>
             <Text style={styles.statLabel}>Total Children</Text>
           </View>
 
           <View style={styles.statCard}>
-            <IconSymbol name="event" size={32} color={colors.secondary} />
+            <IconSymbol name="calendar" size={32} color={colors.secondary} />
             <Text style={styles.statValue}>{stats.totalEvents}</Text>
-            <Text style={styles.statLabel}>Events</Text>
+            <Text style={styles.statLabel}>Upcoming Events</Text>
           </View>
 
           <View style={styles.statCard}>
-            <IconSymbol name="check.circle" size={32} color={colors.success} />
+            <IconSymbol name="checkmark.circle.fill" size={32} color={colors.success} />
             <Text style={styles.statValue}>{stats.attendanceRate}%</Text>
-            <Text style={styles.statLabel}>Attendance Rate</Text>
+            <Text style={styles.statLabel}>Attendance Today</Text>
           </View>
         </View>
 
@@ -122,12 +128,36 @@ export default function AdminDashboard() {
 
           <TouchableOpacity
             style={styles.actionCard}
+            onPress={() => router.push('/(admin)/parents')}
+          >
+            <IconSymbol name="person.2.fill" size={24} color={colors.primary} />
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Manage Parents</Text>
+              <Text style={styles.actionDescription}>Add or edit parent information</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
             onPress={() => router.push('/(admin)/children')}
           >
-            <IconSymbol name="people" size={24} color={colors.primary} />
+            <IconSymbol name="figure.2.and.child.holdinghands" size={24} color={colors.primary} />
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Manage Children</Text>
-              <Text style={styles.actionDescription}>Add, edit, or remove children</Text>
+              <Text style={styles.actionDescription}>Add or edit child profiles</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(admin)/staff')}
+          >
+            <IconSymbol name="person.badge.key.fill" size={24} color={colors.secondary} />
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Manage Staff</Text>
+              <Text style={styles.actionDescription}>Add or edit staff members</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -136,10 +166,10 @@ export default function AdminDashboard() {
             style={styles.actionCard}
             onPress={() => router.push('/(admin)/attendance')}
           >
-            <IconSymbol name="check.circle" size={24} color={colors.success} />
+            <IconSymbol name="checkmark.circle.fill" size={24} color={colors.success} />
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Mark Attendance</Text>
-              <Text style={styles.actionDescription}>Track daily attendance</Text>
+              <Text style={styles.actionDescription}>Record daily attendance</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -148,10 +178,10 @@ export default function AdminDashboard() {
             style={styles.actionCard}
             onPress={() => router.push('/(admin)/events')}
           >
-            <IconSymbol name="event" size={24} color={colors.secondary} />
+            <IconSymbol name="calendar" size={24} color={colors.secondary} />
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Manage Events</Text>
-              <Text style={styles.actionDescription}>Create and manage events</Text>
+              <Text style={styles.actionDescription}>Create and schedule events</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -160,10 +190,10 @@ export default function AdminDashboard() {
             style={styles.actionCard}
             onPress={() => router.push('/(admin)/announcements')}
           >
-            <IconSymbol name="megaphone" size={24} color={colors.accent} />
+            <IconSymbol name="megaphone.fill" size={24} color={colors.accent} />
             <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Announcements</Text>
-              <Text style={styles.actionDescription}>Post school updates</Text>
+              <Text style={styles.actionTitle}>Post Announcements</Text>
+              <Text style={styles.actionDescription}>Share updates with parents</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -172,7 +202,7 @@ export default function AdminDashboard() {
             style={styles.actionCard}
             onPress={() => router.push('/(admin)/media')}
           >
-            <IconSymbol name="photo" size={24} color={colors.primary} />
+            <IconSymbol name="photo.fill" size={24} color={colors.primary} />
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Media Gallery</Text>
               <Text style={styles.actionDescription}>Upload photos and videos</Text>
@@ -191,6 +221,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+    paddingBottom: 140,
   },
   header: {
     flexDirection: 'row',

@@ -122,3 +122,13 @@ export interface Media {
   uploaded_at: string;
   caption?: string;
 }
+
+export interface AbsenceNotification {
+  notification_id: string;
+  child_id: string;
+  parent_id: string;
+  date: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}

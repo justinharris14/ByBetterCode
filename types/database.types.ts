@@ -10,6 +10,19 @@ export interface User {
   role: UserRole;
   created_at: string;
   is_active: boolean;
+  // Address information
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  id_number?: string;
+  work_phone?: string;
+  // Emergency contacts
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relationship?: string;
+  secondary_emergency_contact_name?: string;
+  secondary_emergency_contact_phone?: string;
+  secondary_emergency_contact_relationship?: string;
 }
 
 export interface Child {
@@ -17,10 +30,26 @@ export interface Child {
   first_name: string;
   last_name: string;
   dob: string;
+  gender?: 'male' | 'female' | 'other';
   allergies?: string;
   medical_info?: string;
   parent_id: string;
   created_at: string;
+  // Medical information
+  blood_type?: string;
+  doctor_name?: string;
+  doctor_phone?: string;
+  medical_aid_name?: string;
+  medical_aid_number?: string;
+  chronic_conditions?: string;
+  medications?: string;
+  // Emergency contact
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relationship?: string;
+  // Special needs
+  special_needs?: string;
+  dietary_restrictions?: string;
 }
 
 export interface Attendance {

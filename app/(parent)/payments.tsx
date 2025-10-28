@@ -176,14 +176,11 @@ export default function ParentPaymentsScreen() {
     }
   };
 
-  const handleMakePayment = async (paymentType: 'meal' | 'tuition') => {
-    const paymentUrls = {
-      meal: 'https://buy.stripe.com/test_bJe00ccYJdNb2Jx5zy7g401',
-      tuition: 'https://buy.stripe.com/test_8x24gsf6R10p3NB7HG7g400',
-    };
+  const handleMakePayment = async () => {
+    const tuitionUrl = 'https://buy.stripe.com/test_8x24gsf6R10p3NB7HG7g400';
 
     try {
-      await WebBrowser.openBrowserAsync(paymentUrls[paymentType]);
+      await WebBrowser.openBrowserAsync(tuitionUrl);
     } catch (error) {
       console.error('Error opening payment page:', error);
       Alert.alert('Error', 'Unable to open payment page. Please try again.');
@@ -296,24 +293,14 @@ export default function ParentPaymentsScreen() {
 
         {/* Quick Payment Actions */}
         <View style={styles.quickActionsContainer}>
-          <Text style={styles.sectionTitle}>Quick Payments</Text>
-          <View style={styles.quickActionsRow}>
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => handleMakePayment('meal')}
-            >
-              <IconSymbol name="fork.knife" size={28} color={colors.white} />
-              <Text style={styles.quickActionText}>Weekly Meal</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.quickActionCard, styles.tuitionAction]}
-              onPress={() => handleMakePayment('tuition')}
-            >
-              <IconSymbol name="graduationcap.fill" size={28} color={colors.white} />
-              <Text style={styles.quickActionText}>Tuition Fee</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.sectionTitle}>Quick Payment</Text>
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            onPress={handleMakePayment}
+          >
+            <IconSymbol name="graduationcap.fill" size={32} color={colors.white} />
+            <Text style={styles.quickActionText}>Pay Tuition Fee</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Pending/Overdue Payments */}
@@ -371,32 +358,24 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 0,
   },
-  quickActionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
   quickActionCard: {
-    flex: 1,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.primary,
     borderRadius: 16,
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100,
+    minHeight: 120,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
   },
-  tuitionAction: {
-    backgroundColor: colors.primary,
-  },
   quickActionText: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '600',
     color: colors.white,
-    marginTop: 8,
+    marginTop: 12,
     textAlign: 'center',
   },
   section: {

@@ -50,7 +50,6 @@ export default function ParentDashboard() {
   });
   const [absenceNotifications, setAbsenceNotifications] = useState<AbsenceNotification[]>([]);
   const [eventNotifications, setEventNotifications] = useState<EventNotification[]>([]);
-  const [paymentReminders, setPaymentReminders] = useState<Payment[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const absenceChannelRef = useRef<any>(null);
   const eventChannelRef = useRef<any>(null);
@@ -98,17 +97,6 @@ export default function ParentDashboard() {
         .select('*', { count: 'exact', head: true })
         .eq('parent_id', user.user_id)
         .eq('status', 'overdue');
-
-      // Get payment reminders (pending/overdue payments)
-      const { data: paymentsData } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('parent_id', user.user_id)
-        .in('status', ['pending', 'overdue'])
-        .order('due_date', { ascending: true })
-        .limit(3);
-
-      setPaymentReminders(paymentsData || []);
 
       setStats({
         childrenCount: childrenCount || 0,
@@ -289,20 +277,12 @@ export default function ParentDashboard() {
     ]);
   };
 
-  const handlePayment = async (paymentType: 'meal' | 'tuition') => {
-    const paymentUrls = {
-      meal: 'https://buy.stripe.com/test_bJe00ccYJdNb2Jx5zy7g401',
-      tuition: 'https://buy.stripe.com/test_8x24gsf6R10p3NB7HG7g400',
-    };
-
-    const paymentNames = {
-      meal: 'Weekly Meal Plan',
-      tuition: 'Tuition Fee',
-    };
+  const handlePayment = async () => {
+    const tuitionUrl = 'https://buy.stripe.com/test_8x24gsf6R10p3NB7HG7g400';
 
     try {
-      console.log(`Opening ${paymentNames[paymentType]} payment page...`);
-      const result = await WebBrowser.openBrowserAsync(paymentUrls[paymentType]);
+      console.log('Opening Tuition Fee payment page...');
+      const result = await WebBrowser.openBrowserAsync(tuitionUrl);
       console.log('Browser result:', result);
     } catch (error) {
       console.error('Error opening payment page:', error);
@@ -321,20 +301,6 @@ export default function ParentDashboard() {
       month: 'short',
       day: 'numeric',
     });
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `R${amount.toFixed(2)}`;
-  };
-
-  const getDaysUntilDue = (dueDate: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = new Date(dueDate);
-    due.setHours(0, 0, 0, 0);
-    const diffTime = due.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
   };
 
   return (
@@ -375,104 +341,43 @@ export default function ParentDashboard() {
           </View>
         </View>
 
-        {/* Payment Reminders */}
-        {(stats.overduePayments > 0 || stats.pendingPayments > 0) && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>💰 Payment Reminders</Text>
-              <TouchableOpacity onPress={() => router.push('/(parent)/payments')}>
-                <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
-            </View>
-
-            {stats.overduePayments > 0 && (
-              <View style={styles.alertCard}>
-                <IconSymbol name="exclamationmark.triangle.fill" size={24} color="#F44336" />
-                <View style={styles.alertContent}>
-                  <Text style={styles.alertTitle}>Overdue Payments</Text>
-                  <Text style={styles.alertMessage}>
-                    You have {stats.overduePayments} overdue payment{stats.overduePayments !== 1 ? 's' : ''}. Please pay as soon as possible.
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {paymentReminders.map((payment) => {
-              const daysUntilDue = payment.due_date ? getDaysUntilDue(payment.due_date) : null;
-              const isOverdue = daysUntilDue !== null && daysUntilDue < 0;
-
-              return (
-                <TouchableOpacity
-                  key={payment.payment_id}
-                  style={[styles.paymentReminderCard, isOverdue && styles.overdueReminderCard]}
-                  onPress={() => router.push('/(parent)/payments')}
-                >
-                  <View style={styles.paymentReminderHeader}>
-                    <View style={styles.paymentReminderTitle}>
-                      <IconSymbol
-                        name={isOverdue ? 'exclamationmark.circle.fill' : 'clock.fill'}
-                        size={20}
-                        color={isOverdue ? '#F44336' : '#FF9800'}
-                      />
-                      <Text style={styles.paymentReminderType}>{payment.payment_type}</Text>
-                    </View>
-                    <Text style={styles.paymentReminderAmount}>
-                      {formatCurrency(Number(payment.amount))}
-                    </Text>
-                  </View>
-                  {daysUntilDue !== null && (
-                    <Text style={[styles.paymentReminderDue, isOverdue && styles.overdueText]}>
-                      {isOverdue
-                        ? `Overdue by ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) !== 1 ? 's' : ''}`
-                        : daysUntilDue === 0
-                        ? 'Due today!'
-                        : `Due in ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''}`}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
-
         {/* Payments Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💳 Payments</Text>
-          <View style={styles.paymentContainer}>
-            <TouchableOpacity
-              style={styles.paymentCard}
-              onPress={() => handlePayment('meal')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.paymentIconContainer}>
-                <IconSymbol name="fork.knife" size={32} color={colors.white} />
-              </View>
-              <View style={styles.paymentContent}>
-                <Text style={styles.paymentTitle}>Weekly Meal Plan</Text>
-                <Text style={styles.paymentDescription}>
-                  Pay for your child&apos;s weekly meals
-                </Text>
-              </View>
-              <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.paymentCard}
-              onPress={() => handlePayment('tuition')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.paymentIconContainer, styles.tuitionIcon]}>
-                <IconSymbol name="graduationcap.fill" size={32} color={colors.white} />
-              </View>
-              <View style={styles.paymentContent}>
-                <Text style={styles.paymentTitle}>Tuition Fee</Text>
-                <Text style={styles.paymentDescription}>
-                  Pay monthly tuition fees
-                </Text>
-              </View>
-              <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>💳 Payments</Text>
+            <TouchableOpacity onPress={() => router.push('/(parent)/payments')}>
+              <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
+
+          {stats.overduePayments > 0 && (
+            <View style={styles.alertCard}>
+              <IconSymbol name="exclamationmark.triangle.fill" size={24} color="#F44336" />
+              <View style={styles.alertContent}>
+                <Text style={styles.alertTitle}>Overdue Payments</Text>
+                <Text style={styles.alertMessage}>
+                  You have {stats.overduePayments} overdue payment{stats.overduePayments !== 1 ? 's' : ''}. Please pay as soon as possible.
+                </Text>
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.paymentCard}
+            onPress={handlePayment}
+            activeOpacity={0.7}
+          >
+            <View style={styles.paymentIconContainer}>
+              <IconSymbol name="graduationcap.fill" size={32} color={colors.white} />
+            </View>
+            <View style={styles.paymentContent}>
+              <Text style={styles.paymentTitle}>Tuition Fee</Text>
+              <Text style={styles.paymentDescription}>
+                Pay monthly tuition fees
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {/* Event Notifications */}
@@ -608,9 +513,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 16,
   },
-  paymentContainer: {
-    gap: 12,
-  },
   paymentCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
@@ -627,13 +529,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
-  },
-  tuitionIcon: {
-    backgroundColor: colors.primary,
   },
   paymentContent: {
     flex: 1,
@@ -744,51 +643,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#D32F2F',
     lineHeight: 20,
-  },
-  paymentReminderCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  overdueReminderCard: {
-    borderLeftColor: '#F44336',
-  },
-  paymentReminderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  paymentReminderTitle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  paymentReminderType: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  paymentReminderAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  paymentReminderDue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FF9800',
-  },
-  overdueText: {
-    color: '#F44336',
   },
 });

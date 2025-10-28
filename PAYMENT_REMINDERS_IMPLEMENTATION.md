@@ -18,19 +18,14 @@ This implementation adds comprehensive payment management features to the Crèch
 Added payment reminder features:
 - Payment statistics showing pending and overdue payments
 - Visual alerts for overdue payments
-- Payment reminder cards showing:
-  - Payment type and amount
-  - Days until due or days overdue
-  - Color-coded status indicators (orange for pending, red for overdue)
-- Quick link to full payments screen
+- Quick access to tuition fee payment
+- Direct link to full payments screen
 
 ### 3. New Parent Payments Screen
 **File:** `app/(parent)/payments.tsx`
 
 Complete payment management interface for parents:
-- **Quick Payment Actions**: Direct links to Stripe payment pages
-  - Weekly Meal Plan payment
-  - Tuition Fee payment
+- **Quick Payment Action**: Direct link to Stripe payment page for tuition fees
 - **Payment History**: Organized into two sections
   - Pending/Overdue Payments (with reminders)
   - Paid Payments (with receipt access)
@@ -72,8 +67,7 @@ Administrative payment management interface:
 - Both use credit card icon for easy recognition
 
 ### 6. Stripe Integration
-Payment URLs are integrated for:
-- **Weekly Meal Plan**: `https://buy.stripe.com/test_bJe00ccYJdNb2Jx5zy7g401`
+Payment URL integrated for:
 - **Tuition Fee**: `https://buy.stripe.com/test_8x24gsf6R10p3NB7HG7g400`
 
 Payments open in an in-app browser using `expo-web-browser` for a seamless experience.
@@ -84,10 +78,10 @@ Payments open in an in-app browser using `expo-web-browser` for a seamless exper
 1. **Dashboard View**:
    - See payment reminders at a glance
    - Visual alerts for overdue payments
-   - Quick access to payment links
+   - Quick access to tuition payment link
 
 2. **Payments Screen**:
-   - Make payments directly via Stripe
+   - Make tuition payments directly via Stripe
    - View all payment history
    - Download receipts for paid items
    - See clear reminders for upcoming/overdue payments
@@ -128,11 +122,8 @@ Payments open in an in-app browser using `expo-web-browser` for a seamless exper
 - Color-coded visual indicators
 
 ## Sample Data
-The database includes sample payments:
+The database includes sample tuition payments:
 - Paid tuition fees with receipts
-- Pending tuition fee (due Feb 5, 2025)
-- Overdue meal plan payment
-- Pending meal plan payment (due in 3 days)
 
 ## Future Enhancements
 Potential improvements:
@@ -156,7 +147,7 @@ Potential improvements:
 ## Testing Checklist:
 - [ ] Parent can view payment reminders on dashboard
 - [ ] Parent can access full payments screen
-- [ ] Parent can make payments via Stripe links
+- [ ] Parent can make tuition payments via Stripe link
 - [ ] Parent can view receipts for paid items
 - [ ] Parent can download receipts (mobile)
 - [ ] Admin can create new payment records

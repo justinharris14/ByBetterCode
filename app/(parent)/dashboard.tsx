@@ -295,7 +295,7 @@ export default function ParentDashboard() {
   };
 
   const handleWeeklyMealPayment = async () => {
-    const weeklyMealUrl = 'https://buy.stripe.com/test_weekly_meal_url_here';
+    const weeklyMealUrl = 'https://buy.stripe.com/test_bJe00ccYJdNb2Jx5zy7g401';
 
     try {
       console.log('Opening Weekly Meal payment page...');

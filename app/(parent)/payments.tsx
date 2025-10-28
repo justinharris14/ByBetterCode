@@ -139,7 +139,8 @@ export default function ParentPaymentsScreen() {
 
       // For mobile, download the file
       const filename = `receipt_${payment.payment_id}.pdf`;
-      const fileUri = `${FileSystem.documentDirectory ?? ''}${filename}`;
+      const docDir = FileSystem.documentDirectory || '';
+      const fileUri = docDir + filename;
 
       Alert.alert('Downloading', 'Downloading receipt...');
 
@@ -188,7 +189,7 @@ export default function ParentPaymentsScreen() {
   };
 
   const handleWeeklyMealPayment = async () => {
-    const weeklyMealUrl = 'https://buy.stripe.com/test_weekly_meal_url_here';
+    const weeklyMealUrl = 'https://buy.stripe.com/test_bJe00ccYJdNb2Jx5zy7g401';
 
     try {
       await WebBrowser.openBrowserAsync(weeklyMealUrl);

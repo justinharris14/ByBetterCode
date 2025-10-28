@@ -100,6 +100,8 @@ export interface Payment {
   payment_type: string;
   status: 'pending' | 'paid' | 'overdue';
   payment_date: string;
+  due_date?: string;
+  description?: string;
   receipt_url?: string;
   created_at: string;
 }

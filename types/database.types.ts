@@ -134,3 +134,11 @@ export interface AbsenceNotification {
   is_read: boolean;
   created_at: string;
 }
+
+export interface AnnouncementNotification {
+  notification_id: string;
+  announcement_id: string;
+  parent_id: string;
+  is_read: boolean;
+  created_at: string;
+}

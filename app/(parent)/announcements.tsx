@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,16 +11,35 @@ import { supabase } from '@/lib/supabase';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { Announcement } from '@/types/database.types';
 import { IconSymbol } from '@/components/IconSymbol';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ParentAnnouncementsScreen() {
+  const { user } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadAnnouncements();
-  }, []);
+  const markAllAnnouncementsAsRead = useCallback(async () => {
+    if (!user) return;
 
-  const loadAnnouncements = async () => {
+    try {
+      // Mark all announcement notifications as read for this parent
+      const { error } = await supabase
+        .from('announcement_notifications')
+        .update({ is_read: true })
+        .eq('parent_id', user.user_id)
+        .eq('is_read', false);
+
+      if (error) {
+        console.error('Error marking announcements as read:', error);
+      } else {
+        console.log('All announcements marked as read');
+      }
+    } catch (error) {
+      console.error('Error in markAllAnnouncementsAsRead:', error);
+    }
+  }, [user]);
+
+  const loadAnnouncements = useCallback(async () => {
     try {
       console.log('Loading announcements...');
       
@@ -36,10 +55,17 @@ export default function ParentAnnouncementsScreen() {
 
       console.log('Announcements loaded:', data);
       setAnnouncements(data || []);
+
+      // Mark all announcements as read when viewing this screen
+      await markAllAnnouncementsAsRead();
     } catch (error) {
       console.error('Error in loadAnnouncements:', error);
     }
-  };
+  }, [markAllAnnouncementsAsRead]);
+
+  useEffect(() => {
+    loadAnnouncements();
+  }, [loadAnnouncements]);
 
   const onRefresh = async () => {
     setRefreshing(true);

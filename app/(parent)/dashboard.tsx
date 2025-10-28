@@ -15,7 +15,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '@/lib/supabase';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { AbsenceNotification, Payment } from '@/types/database.types';
+import { AbsenceNotification, Payment, AnnouncementNotification } from '@/types/database.types';
 import { colors, commonStyles } from '@/styles/commonStyles';
 
 interface ParentStats {
@@ -38,6 +38,14 @@ interface EventNotification {
   };
 }
 
+interface AnnouncementNotificationWithDetails extends AnnouncementNotification {
+  announcements?: {
+    title: string;
+    message: string;
+    created_at: string;
+  };
+}
+
 export default function ParentDashboard() {
   const router = useRouter();
   const { user } = useAuth();
@@ -50,9 +58,11 @@ export default function ParentDashboard() {
   });
   const [absenceNotifications, setAbsenceNotifications] = useState<AbsenceNotification[]>([]);
   const [eventNotifications, setEventNotifications] = useState<EventNotification[]>([]);
+  const [announcementNotifications, setAnnouncementNotifications] = useState<AnnouncementNotificationWithDetails[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const absenceChannelRef = useRef<any>(null);
   const eventChannelRef = useRef<any>(null);
+  const announcementChannelRef = useRef<any>(null);
 
   const loadStats = useCallback(async () => {
     if (!user) return;
@@ -84,6 +94,13 @@ export default function ParentDashboard() {
         .eq('parent_id', user.user_id)
         .eq('is_read', false);
 
+      // Get unread announcement notifications count
+      const { count: announcementNotifCount } = await supabase
+        .from('announcement_notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('parent_id', user.user_id)
+        .eq('is_read', false);
+
       // Get pending payments count
       const { count: pendingCount } = await supabase
         .from('payments')
@@ -101,7 +118,7 @@ export default function ParentDashboard() {
       setStats({
         childrenCount: childrenCount || 0,
         upcomingEvents: eventsCount || 0,
-        unreadNotifications: (absenceNotifCount || 0) + (eventNotifCount || 0),
+        unreadNotifications: (absenceNotifCount || 0) + (eventNotifCount || 0) + (announcementNotifCount || 0),
         pendingPayments: pendingCount || 0,
         overduePayments: overdueCount || 0,
       });
@@ -153,6 +170,27 @@ export default function ParentDashboard() {
         console.error('Error loading event notifications:', eventError);
       } else {
         setEventNotifications(eventData || []);
+      }
+
+      // Load announcement notifications
+      const { data: announcementData, error: announcementError } = await supabase
+        .from('announcement_notifications')
+        .select(`
+          *,
+          announcements:announcement_id (
+            title,
+            message,
+            created_at
+          )
+        `)
+        .eq('parent_id', user.user_id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (announcementError) {
+        console.error('Error loading announcement notifications:', announcementError);
+      } else {
+        setAnnouncementNotifications(announcementData || []);
       }
     } catch (error) {
       console.error('Error in loadNotifications:', error);
@@ -215,6 +253,29 @@ export default function ParentDashboard() {
       });
 
     eventChannelRef.current = eventChannel;
+
+    // Subscribe to announcement notifications
+    const announcementChannel = supabase
+      .channel('announcement_notifications_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'announcement_notifications',
+          filter: `parent_id=eq.${user.user_id}`,
+        },
+        (payload) => {
+          console.log('New announcement notification received:', payload);
+          loadNotifications();
+          loadStats();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Announcement channel status:', status);
+      });
+
+    announcementChannelRef.current = announcementChannel;
   }, [user, loadNotifications, loadStats]);
 
   useEffect(() => {
@@ -236,12 +297,25 @@ export default function ParentDashboard() {
         supabase.removeChannel(eventChannelRef.current);
         eventChannelRef.current = null;
       }
+      if (announcementChannelRef.current) {
+        console.log('Cleaning up announcement channel');
+        supabase.removeChannel(announcementChannelRef.current);
+        announcementChannelRef.current = null;
+      }
     };
   }, [user, loadStats, loadNotifications, setupRealtimeSubscription]);
 
-  const markNotificationAsRead = async (notificationId: string, type: 'absence' | 'event') => {
+  const markNotificationAsRead = async (notificationId: string, type: 'absence' | 'event' | 'announcement') => {
     try {
-      const table = type === 'absence' ? 'absence_notifications' : 'event_notifications';
+      let table = '';
+      if (type === 'absence') {
+        table = 'absence_notifications';
+      } else if (type === 'event') {
+        table = 'event_notifications';
+      } else if (type === 'announcement') {
+        table = 'announcement_notifications';
+      }
+
       const { error } = await supabase
         .from(table)
         .update({ is_read: true })
@@ -414,6 +488,44 @@ export default function ParentDashboard() {
           </TouchableOpacity>
         </View>
 
+        {/* Announcement Notifications */}
+        {announcementNotifications.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>📢 Announcements</Text>
+              <TouchableOpacity onPress={() => router.push('/(parent)/announcements')}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            {announcementNotifications.map((notification) => (
+              <TouchableOpacity
+                key={notification.notification_id}
+                style={[
+                  styles.notificationCard,
+                  !notification.is_read && styles.unreadNotification,
+                ]}
+                onPress={() => {
+                  markNotificationAsRead(notification.notification_id, 'announcement');
+                  router.push('/(parent)/announcements');
+                }}
+              >
+                <View style={styles.notificationHeader}>
+                  <Text style={styles.notificationTitle}>
+                    {notification.announcements?.title || 'Announcement'}
+                  </Text>
+                  {!notification.is_read && <View style={styles.unreadBadge} />}
+                </View>
+                <Text style={styles.notificationMessage} numberOfLines={2}>
+                  {notification.announcements?.message || 'No message'}
+                </Text>
+                <Text style={styles.notificationDate}>
+                  📅 {formatDate(notification.announcements?.created_at || notification.created_at)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* Event Notifications */}
         {eventNotifications.length > 0 && (
           <View style={styles.section}>
@@ -471,7 +583,7 @@ export default function ParentDashboard() {
           </View>
         )}
 
-        {absenceNotifications.length === 0 && eventNotifications.length === 0 && (
+        {absenceNotifications.length === 0 && eventNotifications.length === 0 && announcementNotifications.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>🔔</Text>
             <Text style={styles.emptyText}>No notifications</Text>

@@ -39,7 +39,7 @@ interface FloatingTabBarProps {
 export default function FloatingTabBar({
   tabs,
   containerWidth = screenWidth - 40,
-  borderRadius = 35,
+  borderRadius = 25,
   bottomMargin
 }: FloatingTabBarProps) {
   const router = useRouter();
@@ -98,7 +98,7 @@ export default function FloatingTabBar({
   };
 
   const indicatorStyle = useAnimatedStyle(() => {
-    const tabWidth = (containerWidth - 20) / tabs.length; // Account for container padding (10px on each side)
+    const tabWidth = (containerWidth - 16) / tabs.length; // Account for container padding (8px on each side)
     return {
       transform: [
         {
@@ -183,7 +183,7 @@ export default function FloatingTabBar({
                   <View style={styles.tabContent}>
                     <IconSymbol
                       name={tab.icon}
-                      size={40}
+                      size={28}
                       color={isActive ? theme.colors.primary : (theme.dark ? '#98989D' : '#8E8E93')}
                     />
                     <Text
@@ -230,34 +230,34 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: 'absolute',
-    top: 12,
-    left: 12,
-    bottom: 12,
-    borderRadius: 28,
+    top: 8,
+    left: 8,
+    bottom: 8,
+    borderRadius: 20,
     width: `${(100 / 2) - 3}%`, // Default for 2 tabs, will be overridden by dynamic styles
     // Dynamic styling applied in component
   },
   tabsContainer: {
     flexDirection: 'row',
-    height: 110,
+    height: 70,
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 10,
   },
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
   },
   tabLabel: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '500',
-    marginTop: 6,
+    marginTop: 2,
     // Dynamic styling applied in component
   },
 });

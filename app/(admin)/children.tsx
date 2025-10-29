@@ -15,8 +15,10 @@ import { supabase } from '@/lib/supabase';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { Child, User, Staff } from '@/types/database.types';
+import { useRouter } from 'expo-router';
 
 export default function ChildrenScreen() {
+  const router = useRouter();
   const [children, setChildren] = useState<Child[]>([]);
   const [parents, setParents] = useState<User[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -286,6 +288,12 @@ export default function ChildrenScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
+        {/* Back Button */}
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <IconSymbol name="chevron.left" size={24} color={colors.primary} />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
@@ -779,6 +787,18 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 8,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+    marginLeft: 4,
   },
   searchContainer: {
     flexDirection: 'row',

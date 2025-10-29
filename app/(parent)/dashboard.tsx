@@ -24,6 +24,7 @@ interface ParentStats {
   unreadNotifications: number;
   pendingPayments: number;
   overduePayments: number;
+  pendingConsents: number;
 }
 
 interface EventNotification {
@@ -55,6 +56,7 @@ export default function ParentDashboard() {
     unreadNotifications: 0,
     pendingPayments: 0,
     overduePayments: 0,
+    pendingConsents: 0,
   });
   const [absenceNotifications, setAbsenceNotifications] = useState<AbsenceNotification[]>([]);
   const [eventNotifications, setEventNotifications] = useState<EventNotification[]>([]);
@@ -115,12 +117,21 @@ export default function ParentDashboard() {
         .eq('parent_id', user.user_id)
         .eq('status', 'overdue');
 
+      // Get consent forms count
+      const { count: consentsCount } = await supabase
+        .from('media_consent')
+        .select('*', { count: 'exact', head: true })
+        .eq('parent_id', user.user_id);
+
+      const pendingConsents = (childrenCount || 0) - (consentsCount || 0);
+
       setStats({
         childrenCount: childrenCount || 0,
         upcomingEvents: eventsCount || 0,
         unreadNotifications: (absenceNotifCount || 0) + (eventNotifCount || 0) + (announcementNotifCount || 0),
         pendingPayments: pendingCount || 0,
         overduePayments: overdueCount || 0,
+        pendingConsents: pendingConsents > 0 ? pendingConsents : 0,
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -431,6 +442,28 @@ export default function ParentDashboard() {
             <Text style={styles.statLabel}>Unread</Text>
           </View>
         </View>
+
+        {/* Consent Alert */}
+        {stats.pendingConsents > 0 && (
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.consentAlert}
+              onPress={() => router.push('/(parent)/consent')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.consentAlertContent}>
+                <IconSymbol name="exclamationmark.triangle.fill" size={24} color="#FF9800" />
+                <View style={styles.consentAlertText}>
+                  <Text style={styles.consentAlertTitle}>Media Consent Required</Text>
+                  <Text style={styles.consentAlertSubtitle}>
+                    {stats.pendingConsents} {stats.pendingConsents === 1 ? 'child needs' : 'children need'} consent form{stats.pendingConsents === 1 ? '' : 's'}
+                  </Text>
+                </View>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color="#FF9800" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Gallery Section */}
         <View style={styles.section}>
@@ -855,5 +888,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#D32F2F',
     lineHeight: 20,
+  },
+  consentAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF3E0',
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+  },
+  consentAlertContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  consentAlertText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  consentAlertTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#E65100',
+    marginBottom: 2,
+  },
+  consentAlertSubtitle: {
+    fontSize: 14,
+    color: '#F57C00',
   },
 });

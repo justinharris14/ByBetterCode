@@ -200,6 +200,18 @@ export default function AdminDashboard() {
 
           <TouchableOpacity
             style={styles.actionCard}
+            onPress={() => router.push('/(admin)/consent')}
+          >
+            <IconSymbol name="doc.text.fill" size={24} color="#FF9800" />
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Media Consent</Text>
+              <Text style={styles.actionDescription}>Manage parent consent forms</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
             onPress={() => router.push('/(admin)/media')}
           >
             <IconSymbol name="photo.fill" size={24} color={colors.primary} />

@@ -142,3 +142,20 @@ export interface AnnouncementNotification {
   is_read: boolean;
   created_at: string;
 }
+
+export type ConsentType = 'photos' | 'videos' | 'both' | 'none';
+export type UsagePermission = 'internal' | 'website' | 'social_media' | 'promotional';
+
+export interface MediaConsent {
+  consent_id: string;
+  child_id: string;
+  parent_id: string;
+  consent_granted: boolean;
+  consent_date?: string;
+  consent_type: ConsentType;
+  usage_permissions?: UsagePermission[];
+  special_conditions?: string;
+  signature_data?: string;
+  created_at: string;
+  updated_at: string;
+}

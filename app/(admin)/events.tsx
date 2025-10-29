@@ -34,6 +34,12 @@ export default function EventsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterDateRange, setFilterDateRange] = useState<'all' | 'upcoming' | 'past' | 'today'>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -284,6 +290,42 @@ export default function EventsScreen() {
     );
   };
 
+  // Filter function
+  const getFilteredEvents = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    return events.filter((event) => {
+      // Search query filter
+      const matchesSearch = searchQuery === '' || 
+        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (event.description && event.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      // Date range filter
+      const eventDate = new Date(event.event_datetime);
+      let matchesDateRange = true;
+
+      if (filterDateRange === 'upcoming') {
+        matchesDateRange = eventDate >= now;
+      } else if (filterDateRange === 'past') {
+        matchesDateRange = eventDate < now;
+      } else if (filterDateRange === 'today') {
+        matchesDateRange = eventDate >= today && eventDate < tomorrow;
+      }
+
+      return matchesSearch && matchesDateRange;
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterDateRange('all');
+  };
+
+  const hasActiveFilters = searchQuery !== '' || filterDateRange !== 'all';
+
   if (loading) {
     return (
       <View style={[commonStyles.container, commonStyles.center]}>
@@ -292,6 +334,8 @@ export default function EventsScreen() {
     );
   }
 
+  const filteredEvents = getFilteredEvents();
+
   return (
     <View style={commonStyles.container}>
       <ScrollView
@@ -299,31 +343,118 @@ export default function EventsScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <TouchableOpacity style={[buttonStyles.primary, styles.addButton]} onPress={openAddModal}>
-          <Text style={styles.addButtonText}>+ Create Event</Text>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search events..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Filter Toggle Button */}
+        <TouchableOpacity 
+          style={[styles.filterToggle, hasActiveFilters && styles.filterToggleActive]}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <IconSymbol name="line.3.horizontal.decrease.circle" size={20} color={hasActiveFilters ? colors.primary : colors.text} />
+          <Text style={[styles.filterToggleText, hasActiveFilters && styles.filterToggleTextActive]}>
+            Filters {hasActiveFilters && '(Active)'}
+          </Text>
+          <IconSymbol name={showFilters ? "chevron.up" : "chevron.down"} size={16} color={hasActiveFilters ? colors.primary : colors.text} />
         </TouchableOpacity>
 
-        {events.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No events scheduled</Text>
-          </View>
-        ) : (
-          events.map((event) => (
-            <View key={event.event_id} style={commonStyles.cardWhite}>
-              <View style={styles.eventHeader}>
-                <View style={styles.eventInfo}>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  <Text style={commonStyles.textSecondary}>
-                    📅 {new Date(event.event_datetime).toLocaleString()}
-                  </Text>
-                  <Text style={styles.eventDescription}>{event.description}</Text>
-                </View>
-                <TouchableOpacity onPress={() => handleDelete(event)} style={styles.deleteButton}>
-                  <IconSymbol name="trash" size={20} color={colors.accent} />
+        {/* Filter Options */}
+        {showFilters && (
+          <View style={styles.filterContainer}>
+            {/* Date Range Filter */}
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>Date Range:</Text>
+              <View style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterDateRange === 'all' && styles.filterChipActive]}
+                  onPress={() => setFilterDateRange('all')}
+                >
+                  <Text style={[styles.filterChipText, filterDateRange === 'all' && styles.filterChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterDateRange === 'today' && styles.filterChipActive]}
+                  onPress={() => setFilterDateRange('today')}
+                >
+                  <Text style={[styles.filterChipText, filterDateRange === 'today' && styles.filterChipTextActive]}>Today</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterDateRange === 'upcoming' && styles.filterChipActive]}
+                  onPress={() => setFilterDateRange('upcoming')}
+                >
+                  <Text style={[styles.filterChipText, filterDateRange === 'upcoming' && styles.filterChipTextActive]}>Upcoming</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterDateRange === 'past' && styles.filterChipActive]}
+                  onPress={() => setFilterDateRange('past')}
+                >
+                  <Text style={[styles.filterChipText, filterDateRange === 'past' && styles.filterChipTextActive]}>Past</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          ))
+
+            {hasActiveFilters && (
+              <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+                <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Results Count */}
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsCount}>
+            {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'} found
+          </Text>
+          <TouchableOpacity style={[buttonStyles.primary, styles.addButton]} onPress={openAddModal}>
+            <Text style={styles.addButtonText}>+ Create Event</Text>
+          </TouchableOpacity>
+        </View>
+
+        {filteredEvents.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>
+              {hasActiveFilters ? 'No events match your filters' : 'No events scheduled'}
+            </Text>
+          </View>
+        ) : (
+          filteredEvents.map((event) => {
+            const eventDate = new Date(event.event_datetime);
+            const isPast = eventDate < new Date();
+            
+            return (
+              <View key={event.event_id} style={[commonStyles.cardWhite, isPast && styles.pastEventCard]}>
+                <View style={styles.eventHeader}>
+                  <View style={styles.eventInfo}>
+                    <Text style={[styles.eventTitle, isPast && styles.pastEventText]}>{event.title}</Text>
+                    <Text style={commonStyles.textSecondary}>
+                      📅 {eventDate.toLocaleString()}
+                    </Text>
+                    {isPast && (
+                      <Text style={styles.pastBadge}>Past Event</Text>
+                    )}
+                    <Text style={styles.eventDescription}>{event.description}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleDelete(event)} style={styles.deleteButton}>
+                    <IconSymbol name="trash" size={20} color={colors.accent} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })
         )}
       </ScrollView>
 
@@ -335,18 +466,21 @@ export default function EventsScreen() {
             <TextInput
               style={commonStyles.input}
               placeholder="Event Title *"
+              placeholderTextColor={colors.textSecondary}
               value={formData.title}
               onChangeText={(text) => setFormData({ ...formData, title: text })}
             />
             <TextInput
               style={commonStyles.input}
               placeholder="Date & Time (YYYY-MM-DD HH:MM) *"
+              placeholderTextColor={colors.textSecondary}
               value={formData.event_datetime}
               onChangeText={(text) => setFormData({ ...formData, event_datetime: text })}
             />
             <TextInput
               style={[commonStyles.input, styles.textArea]}
               placeholder="Description"
+              placeholderTextColor={colors.textSecondary}
               value={formData.description}
               onChangeText={(text) => setFormData({ ...formData, description: text })}
               multiline
@@ -381,12 +515,119 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: colors.text,
+  },
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterToggleActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.lightBlue,
+  },
+  filterToggleText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  filterToggleTextActive: {
+    color: colors.primary,
+  },
+  filterContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterRow: {
+    marginBottom: 8,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.lightGray,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: colors.white,
+  },
+  clearFiltersButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  clearFiltersText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  resultsCount: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
   addButton: {
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   addButtonText: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   emptyState: {
@@ -415,6 +656,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     marginTop: 8,
+  },
+  pastEventCard: {
+    opacity: 0.7,
+  },
+  pastEventText: {
+    color: colors.textSecondary,
+  },
+  pastBadge: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    marginTop: 4,
   },
   deleteButton: {
     padding: 8,

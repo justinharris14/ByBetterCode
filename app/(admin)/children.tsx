@@ -27,6 +27,14 @@ export default function ChildrenScreen() {
   const [teacherPickerVisible, setTeacherPickerVisible] = useState(false);
   const [genderPickerVisible, setGenderPickerVisible] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterParent, setFilterParent] = useState<string>('');
+  const [filterTeacher, setFilterTeacher] = useState<string>('');
+  const [filterGender, setFilterGender] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
+  
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -236,6 +244,36 @@ export default function ChildrenScreen() {
     setGenderPickerVisible(false);
   };
 
+  // Filter function
+  const getFilteredChildren = () => {
+    return children.filter((child) => {
+      // Search query filter (name)
+      const matchesSearch = searchQuery === '' || 
+        `${child.first_name} ${child.last_name}`.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Parent filter
+      const matchesParent = filterParent === '' || child.parent_id === filterParent;
+
+      // Teacher filter
+      const matchesTeacher = filterTeacher === '' || 
+        (filterTeacher === 'unassigned' ? !child.assigned_teacher_id : child.assigned_teacher_id === filterTeacher);
+
+      // Gender filter
+      const matchesGender = filterGender === '' || child.gender === filterGender;
+
+      return matchesSearch && matchesParent && matchesTeacher && matchesGender;
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterParent('');
+    setFilterTeacher('');
+    setFilterGender('');
+  };
+
+  const hasActiveFilters = searchQuery !== '' || filterParent !== '' || filterTeacher !== '' || filterGender !== '';
+
   if (loading) {
     return (
       <View style={[commonStyles.container, commonStyles.center]}>
@@ -244,6 +282,8 @@ export default function ChildrenScreen() {
     );
   }
 
+  const filteredChildren = getFilteredChildren();
+
   return (
     <View style={commonStyles.container}>
       <ScrollView
@@ -251,16 +291,149 @@ export default function ChildrenScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <TouchableOpacity style={[buttonStyles.primary, styles.addButton]} onPress={openAddModal}>
-          <Text style={styles.addButtonText}>+ Add Child</Text>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Filter Toggle Button */}
+        <TouchableOpacity 
+          style={[styles.filterToggle, hasActiveFilters && styles.filterToggleActive]}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <IconSymbol name="line.3.horizontal.decrease.circle" size={20} color={hasActiveFilters ? colors.primary : colors.text} />
+          <Text style={[styles.filterToggleText, hasActiveFilters && styles.filterToggleTextActive]}>
+            Filters {hasActiveFilters && `(${[filterParent, filterTeacher, filterGender].filter(f => f !== '').length})`}
+          </Text>
+          <IconSymbol name={showFilters ? "chevron.up" : "chevron.down"} size={16} color={hasActiveFilters ? colors.primary : colors.text} />
         </TouchableOpacity>
 
-        {children.length === 0 ? (
+        {/* Filter Options */}
+        {showFilters && (
+          <View style={styles.filterContainer}>
+            {/* Parent Filter */}
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>Parent:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterParent === '' && styles.filterChipActive]}
+                  onPress={() => setFilterParent('')}
+                >
+                  <Text style={[styles.filterChipText, filterParent === '' && styles.filterChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                {parents.map((parent) => (
+                  <TouchableOpacity
+                    key={parent.user_id}
+                    style={[styles.filterChip, filterParent === parent.user_id && styles.filterChipActive]}
+                    onPress={() => setFilterParent(parent.user_id)}
+                  >
+                    <Text style={[styles.filterChipText, filterParent === parent.user_id && styles.filterChipTextActive]}>
+                      {parent.first_name} {parent.last_name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Teacher Filter */}
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>Teacher:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterTeacher === '' && styles.filterChipActive]}
+                  onPress={() => setFilterTeacher('')}
+                >
+                  <Text style={[styles.filterChipText, filterTeacher === '' && styles.filterChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterTeacher === 'unassigned' && styles.filterChipActive]}
+                  onPress={() => setFilterTeacher('unassigned')}
+                >
+                  <Text style={[styles.filterChipText, filterTeacher === 'unassigned' && styles.filterChipTextActive]}>Unassigned</Text>
+                </TouchableOpacity>
+                {staff.map((teacher) => (
+                  <TouchableOpacity
+                    key={teacher.staff_id}
+                    style={[styles.filterChip, filterTeacher === teacher.staff_id && styles.filterChipActive]}
+                    onPress={() => setFilterTeacher(teacher.staff_id)}
+                  >
+                    <Text style={[styles.filterChipText, filterTeacher === teacher.staff_id && styles.filterChipTextActive]}>
+                      {teacher.first_name} {teacher.last_name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Gender Filter */}
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>Gender:</Text>
+              <View style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterGender === '' && styles.filterChipActive]}
+                  onPress={() => setFilterGender('')}
+                >
+                  <Text style={[styles.filterChipText, filterGender === '' && styles.filterChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterGender === 'male' && styles.filterChipActive]}
+                  onPress={() => setFilterGender('male')}
+                >
+                  <Text style={[styles.filterChipText, filterGender === 'male' && styles.filterChipTextActive]}>Male</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterGender === 'female' && styles.filterChipActive]}
+                  onPress={() => setFilterGender('female')}
+                >
+                  <Text style={[styles.filterChipText, filterGender === 'female' && styles.filterChipTextActive]}>Female</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterGender === 'other' && styles.filterChipActive]}
+                  onPress={() => setFilterGender('other')}
+                >
+                  <Text style={[styles.filterChipText, filterGender === 'other' && styles.filterChipTextActive]}>Other</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {hasActiveFilters && (
+              <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+                <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Results Count */}
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsCount}>
+            {filteredChildren.length} {filteredChildren.length === 1 ? 'child' : 'children'} found
+          </Text>
+          <TouchableOpacity style={[buttonStyles.primary, styles.addButton]} onPress={openAddModal}>
+            <Text style={styles.addButtonText}>+ Add Child</Text>
+          </TouchableOpacity>
+        </View>
+
+        {filteredChildren.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No children registered yet</Text>
+            <Text style={styles.emptyText}>
+              {hasActiveFilters ? 'No children match your filters' : 'No children registered yet'}
+            </Text>
           </View>
         ) : (
-          children.map((child) => (
+          filteredChildren.map((child) => (
             <View key={child.child_id} style={commonStyles.cardWhite}>
               <View style={styles.childHeader}>
                 <View style={styles.childInfo}>
@@ -636,12 +809,119 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: colors.text,
+  },
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterToggleActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.lightBlue,
+  },
+  filterToggleText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  filterToggleTextActive: {
+    color: colors.primary,
+  },
+  filterContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterRow: {
+    marginBottom: 16,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.lightGray,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: colors.white,
+  },
+  clearFiltersButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  clearFiltersText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  resultsCount: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
   addButton: {
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   addButtonText: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   emptyState: {

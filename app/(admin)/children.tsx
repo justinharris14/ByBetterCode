@@ -30,7 +30,6 @@ export default function ChildrenScreen() {
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterParent, setFilterParent] = useState<string>('');
   const [filterTeacher, setFilterTeacher] = useState<string>('');
   const [filterGender, setFilterGender] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
@@ -251,9 +250,6 @@ export default function ChildrenScreen() {
       const matchesSearch = searchQuery === '' || 
         `${child.first_name} ${child.last_name}`.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Parent filter
-      const matchesParent = filterParent === '' || child.parent_id === filterParent;
-
       // Teacher filter
       const matchesTeacher = filterTeacher === '' || 
         (filterTeacher === 'unassigned' ? !child.assigned_teacher_id : child.assigned_teacher_id === filterTeacher);
@@ -261,18 +257,17 @@ export default function ChildrenScreen() {
       // Gender filter
       const matchesGender = filterGender === '' || child.gender === filterGender;
 
-      return matchesSearch && matchesParent && matchesTeacher && matchesGender;
+      return matchesSearch && matchesTeacher && matchesGender;
     });
   };
 
   const clearFilters = () => {
     setSearchQuery('');
-    setFilterParent('');
     setFilterTeacher('');
     setFilterGender('');
   };
 
-  const hasActiveFilters = searchQuery !== '' || filterParent !== '' || filterTeacher !== '' || filterGender !== '';
+  const hasActiveFilters = searchQuery !== '' || filterTeacher !== '' || filterGender !== '';
 
   if (loading) {
     return (
@@ -315,7 +310,7 @@ export default function ChildrenScreen() {
         >
           <IconSymbol name="line.3.horizontal.decrease.circle" size={20} color={hasActiveFilters ? colors.primary : colors.text} />
           <Text style={[styles.filterToggleText, hasActiveFilters && styles.filterToggleTextActive]}>
-            Filters {hasActiveFilters && `(${[filterParent, filterTeacher, filterGender].filter(f => f !== '').length})`}
+            Filters {hasActiveFilters && `(${[filterTeacher, filterGender].filter(f => f !== '').length})`}
           </Text>
           <IconSymbol name={showFilters ? "chevron.up" : "chevron.down"} size={16} color={hasActiveFilters ? colors.primary : colors.text} />
         </TouchableOpacity>
@@ -323,30 +318,6 @@ export default function ChildrenScreen() {
         {/* Filter Options */}
         {showFilters && (
           <View style={styles.filterContainer}>
-            {/* Parent Filter */}
-            <View style={styles.filterRow}>
-              <Text style={styles.filterLabel}>Parent:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
-                <TouchableOpacity
-                  style={[styles.filterChip, filterParent === '' && styles.filterChipActive]}
-                  onPress={() => setFilterParent('')}
-                >
-                  <Text style={[styles.filterChipText, filterParent === '' && styles.filterChipTextActive]}>All</Text>
-                </TouchableOpacity>
-                {parents.map((parent) => (
-                  <TouchableOpacity
-                    key={parent.user_id}
-                    style={[styles.filterChip, filterParent === parent.user_id && styles.filterChipActive]}
-                    onPress={() => setFilterParent(parent.user_id)}
-                  >
-                    <Text style={[styles.filterChipText, filterParent === parent.user_id && styles.filterChipTextActive]}>
-                      {parent.first_name} {parent.last_name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
             {/* Teacher Filter */}
             <View style={styles.filterRow}>
               <Text style={styles.filterLabel}>Teacher:</Text>

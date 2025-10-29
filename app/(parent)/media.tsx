@@ -12,12 +12,15 @@ import {
   Modal,
   Dimensions,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Media, Child } from '@/types/database.types';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +33,8 @@ export default function ParentMediaScreen() {
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [downloading, setDownloading] = useState(false);
+  const [mediaLibraryPermission, requestMediaLibraryPermission] = MediaLibrary.usePermissions();
 
   useEffect(() => {
     if (user) {
@@ -92,6 +97,77 @@ export default function ParentMediaScreen() {
   const viewMedia = (mediaItem: Media) => {
     setSelectedMedia(mediaItem);
     setViewModalVisible(true);
+  };
+
+  const downloadMedia = async (mediaItem: Media) => {
+    try {
+      // Check and request permissions
+      if (!mediaLibraryPermission || mediaLibraryPermission.status !== 'granted') {
+        const { status } = await requestMediaLibraryPermission();
+        if (status !== 'granted') {
+          Alert.alert(
+            'Permission Required',
+            'We need permission to save media to your device. Please enable it in your device settings.'
+          );
+          return;
+        }
+      }
+
+      setDownloading(true);
+
+      // Get file extension from URL
+      const urlParts = mediaItem.media_url.split('.');
+      const extension = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params if any
+      
+      // Create a unique filename
+      const childName = getChildName(mediaItem.child_id).replace(/\s+/g, '_');
+      const timestamp = new Date(mediaItem.uploaded_at).getTime();
+      const fileName = `CrecheConnect_${childName}_${timestamp}.${extension}`;
+      
+      // Define file path
+      const documentDirectory = FileSystem.documentDirectory || FileSystem.cacheDirectory || '';
+      const fileUri = documentDirectory + fileName;
+
+      // Download the file
+      console.log('Downloading from:', mediaItem.media_url);
+      console.log('Saving to:', fileUri);
+
+      const downloadResult = await FileSystem.downloadAsync(
+        mediaItem.media_url,
+        fileUri
+      );
+
+      if (downloadResult.status !== 200) {
+        throw new Error('Download failed with status: ' + downloadResult.status);
+      }
+
+      console.log('Download complete:', downloadResult.uri);
+
+      // Save to media library
+      const asset = await MediaLibrary.saveToLibraryAsync(downloadResult.uri);
+      console.log('Saved to library:', asset);
+
+      Alert.alert(
+        'Success',
+        `${mediaItem.media_kind === 'photo' ? 'Photo' : 'Video'} saved to your device!`,
+        [{ text: 'OK' }]
+      );
+
+      // Clean up the temporary file
+      try {
+        await FileSystem.deleteAsync(downloadResult.uri, { idempotent: true });
+      } catch (cleanupError) {
+        console.log('Cleanup error (non-critical):', cleanupError);
+      }
+    } catch (error) {
+      console.error('Error downloading media:', error);
+      Alert.alert(
+        'Download Failed',
+        'Unable to download the media. Please check your internet connection and try again.'
+      );
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const getChildName = (childId: string) => {
@@ -247,37 +323,57 @@ export default function ParentMediaScreen() {
           </TouchableOpacity>
 
           {selectedMedia && (
-            <View style={styles.viewModalContent}>
-              {selectedMedia.media_kind === 'photo' ? (
-                <Image
-                  source={{ uri: selectedMedia.media_url }}
-                  style={styles.fullImage}
-                  resizeMode="contain"
-                />
-              ) : (
-                <View style={styles.videoFullPlaceholder}>
-                  <IconSymbol name="play.circle.fill" size={80} color={colors.white} />
-                  <Text style={styles.videoFullText}>
-                    Video playback not available in preview
+            <>
+              <View style={styles.viewModalContent}>
+                {selectedMedia.media_kind === 'photo' ? (
+                  <Image
+                    source={{ uri: selectedMedia.media_url }}
+                    style={styles.fullImage}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <View style={styles.videoFullPlaceholder}>
+                    <IconSymbol name="play.circle.fill" size={80} color={colors.white} />
+                    <Text style={styles.videoFullText}>
+                      Video playback not available in preview
+                    </Text>
+                    <Text style={styles.videoFullSubtext}>
+                      Download to view on your device
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.mediaDetails}>
+                  <Text style={styles.detailCaption}>
+                    {selectedMedia.caption || 'No caption'}
                   </Text>
-                  <Text style={styles.videoFullSubtext}>
-                    Open in browser to view video
+                  <Text style={styles.detailInfo}>
+                    Child: {getChildName(selectedMedia.child_id)}
+                  </Text>
+                  <Text style={styles.detailInfo}>
+                    Uploaded: {new Date(selectedMedia.uploaded_at).toLocaleString()}
                   </Text>
                 </View>
-              )}
-
-              <View style={styles.mediaDetails}>
-                <Text style={styles.detailCaption}>
-                  {selectedMedia.caption || 'No caption'}
-                </Text>
-                <Text style={styles.detailInfo}>
-                  Child: {getChildName(selectedMedia.child_id)}
-                </Text>
-                <Text style={styles.detailInfo}>
-                  Uploaded: {new Date(selectedMedia.uploaded_at).toLocaleString()}
-                </Text>
               </View>
-            </View>
+
+              {/* Download Button */}
+              <TouchableOpacity
+                style={styles.downloadButton}
+                onPress={() => downloadMedia(selectedMedia)}
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <ActivityIndicator color={colors.white} size="small" />
+                ) : (
+                  <>
+                    <IconSymbol name="arrow.down.circle.fill" size={24} color={colors.white} />
+                    <Text style={styles.downloadButtonText}>
+                      Download {selectedMedia.media_kind === 'photo' ? 'Photo' : 'Video'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
           )}
         </View>
       </Modal>
@@ -450,7 +546,7 @@ const styles = StyleSheet.create({
   },
   mediaDetails: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 100,
     left: 0,
     right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -466,5 +562,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.white,
     marginBottom: 4,
+  },
+  downloadButton: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  downloadButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Natively",
@@ -34,7 +35,15 @@
     "plugins": [
       "expo-font",
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow CrècheConnect to access your photos to save media of your children.",
+          "savePhotosPermission": "Allow CrècheConnect to save photos and videos of your children to your device.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
     ],
     "scheme": "natively",
     "experiments": {

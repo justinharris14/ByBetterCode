@@ -91,6 +91,51 @@ export default function AttendanceScreen() {
     }
   };
 
+  const markAllPresent = async () => {
+    if (!user) return;
+
+    Alert.alert(
+      'Mark All Present',
+      'Are you sure you want to mark all children as present?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            const dateStr = selectedDate.toISOString().split('T')[0];
+            try {
+              const updates = children.map((child) => {
+                const existingRecord = attendance.find((a) => a.child_id === child.child_id);
+                if (existingRecord) {
+                  return supabase
+                    .from('attendance')
+                    .update({ is_present: true })
+                    .eq('attendance_id', existingRecord.attendance_id);
+                } else {
+                  return supabase.from('attendance').insert([
+                    {
+                      child_id: child.child_id,
+                      date: dateStr,
+                      is_present: true,
+                      marked_by: user.user_id,
+                    },
+                  ]);
+                }
+              });
+
+              await Promise.all(updates);
+              loadData();
+              Alert.alert('Success', 'All children marked as present');
+            } catch (error) {
+              console.error('Error marking all present:', error);
+              Alert.alert('Error', 'Failed to mark all as present');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const getAttendanceStatus = (childId: string): boolean | undefined => {
     const record = attendance.find((a) => a.child_id === childId);
     return record?.is_present;
@@ -102,6 +147,23 @@ export default function AttendanceScreen() {
     setSelectedDate(newDate);
   };
 
+  const goToToday = () => {
+    setSelectedDate(new Date());
+  };
+
+  const getAttendanceStats = () => {
+    const total = children.length;
+    const marked = attendance.length;
+    const present = attendance.filter((a) => a.is_present).length;
+    const absent = attendance.filter((a) => !a.is_present).length;
+    const unmarked = total - marked;
+
+    return { total, marked, present, absent, unmarked };
+  };
+
+  const stats = getAttendanceStats();
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
+
   if (loading) {
     return (
       <View style={[commonStyles.container, commonStyles.center]}>
@@ -112,16 +174,53 @@ export default function AttendanceScreen() {
 
   return (
     <View style={commonStyles.container}>
+      {/* Date Selector */}
       <View style={styles.dateSelector}>
         <TouchableOpacity onPress={() => changeDate(-1)} style={styles.dateButton}>
           <IconSymbol name="chevron.left" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.dateText}>{selectedDate.toLocaleDateString()}</Text>
+        <View style={styles.dateInfo}>
+          <Text style={styles.dateText}>{selectedDate.toLocaleDateString()}</Text>
+          {!isToday && (
+            <TouchableOpacity onPress={goToToday} style={styles.todayButton}>
+              <Text style={styles.todayButtonText}>Today</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <TouchableOpacity onPress={() => changeDate(1)} style={styles.dateButton}>
           <IconSymbol name="chevron.right" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 
+      {/* Stats Bar */}
+      <View style={styles.statsBar}>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{stats.present}</Text>
+          <Text style={[styles.statLabel, { color: colors.success }]}>Present</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{stats.absent}</Text>
+          <Text style={[styles.statLabel, { color: colors.accent }]}>Absent</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{stats.unmarked}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Unmarked</Text>
+        </View>
+      </View>
+
+      {/* Quick Actions */}
+      {children.length > 0 && (
+        <View style={styles.quickActions}>
+          <TouchableOpacity onPress={markAllPresent} style={styles.quickActionButton}>
+            <IconSymbol name="checkmark.circle.fill" size={20} color={colors.success} />
+            <Text style={styles.quickActionText}>Mark All Present</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Children List */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -129,44 +228,71 @@ export default function AttendanceScreen() {
       >
         {children.length === 0 ? (
           <View style={styles.emptyState}>
+            <IconSymbol name="person.2.slash" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No children registered</Text>
+            <Text style={styles.emptySubtext}>Add children to start tracking attendance</Text>
           </View>
         ) : (
-          children.map((child) => {
-            const status = getAttendanceStatus(child.child_id);
-            return (
-              <TouchableOpacity
-                key={child.child_id}
-                style={[
-                  commonStyles.cardWhite,
-                  styles.childCard,
-                  status === true && styles.presentCard,
-                  status === false && styles.absentCard,
-                ]}
-                onPress={() => toggleAttendance(child.child_id, status)}
-              >
-                <View style={styles.childInfo}>
-                  <Text style={styles.childName}>
-                    {child.first_name} {child.last_name}
-                  </Text>
-                  <Text style={commonStyles.textSecondary}>
-                    {status === true
-                      ? '✓ Present'
-                      : status === false
-                      ? '✗ Absent'
-                      : 'Not marked'}
-                  </Text>
-                </View>
-                <View
+          <>
+            {children.map((child) => {
+              const status = getAttendanceStatus(child.child_id);
+              return (
+                <TouchableOpacity
+                  key={child.child_id}
                   style={[
-                    styles.statusIndicator,
-                    status === true && styles.presentIndicator,
-                    status === false && styles.absentIndicator,
+                    commonStyles.cardWhite,
+                    styles.childCard,
+                    status === true && styles.presentCard,
+                    status === false && styles.absentCard,
                   ]}
-                />
-              </TouchableOpacity>
-            );
-          })
+                  onPress={() => toggleAttendance(child.child_id, status)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.childInfo}>
+                    <Text style={styles.childName}>
+                      {child.first_name} {child.last_name}
+                    </Text>
+                    <View style={styles.statusRow}>
+                      {status === true && (
+                        <>
+                          <IconSymbol name="checkmark.circle.fill" size={16} color={colors.success} />
+                          <Text style={[styles.statusText, { color: colors.success }]}>Present</Text>
+                        </>
+                      )}
+                      {status === false && (
+                        <>
+                          <IconSymbol name="xmark.circle.fill" size={16} color={colors.accent} />
+                          <Text style={[styles.statusText, { color: colors.accent }]}>Absent</Text>
+                        </>
+                      )}
+                      {status === undefined && (
+                        <>
+                          <IconSymbol name="circle" size={16} color={colors.textSecondary} />
+                          <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+                            Tap to mark
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                  </View>
+                  <View
+                    style={[
+                      styles.statusIndicator,
+                      status === true && styles.presentIndicator,
+                      status === false && styles.absentIndicator,
+                    ]}
+                  >
+                    {status === true && (
+                      <IconSymbol name="checkmark" size={16} color={colors.background} />
+                    )}
+                    {status === false && (
+                      <IconSymbol name="xmark" size={16} color={colors.background} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </>
         )}
       </ScrollView>
     </View>
@@ -185,11 +311,77 @@ const styles = StyleSheet.create({
   },
   dateButton: {
     padding: 8,
+    borderRadius: 8,
+  },
+  dateInfo: {
+    alignItems: 'center',
   },
   dateText: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.text,
+  },
+  todayButton: {
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+  },
+  todayButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.background,
+  },
+  statsBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: colors.border,
+  },
+  quickActions: {
+    padding: 16,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  quickActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.success,
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.success,
+    marginLeft: 8,
   },
   scrollView: {
     flex: 1,
@@ -202,22 +394,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
     color: colors.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
   },
   childCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.border,
   },
   presentCard: {
-    borderLeftWidth: 4,
     borderLeftColor: colors.success,
+    backgroundColor: `${colors.success}08`,
   },
   absentCard: {
-    borderLeftWidth: 4,
     borderLeftColor: colors.accent,
+    backgroundColor: `${colors.accent}08`,
   },
   childInfo: {
     flex: 1,
@@ -226,14 +428,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 6,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
   },
   statusIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   presentIndicator: {
     backgroundColor: colors.success,

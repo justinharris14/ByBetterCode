@@ -448,7 +448,7 @@ export default function ParentDashboard() {
           <View style={styles.section}>
             <TouchableOpacity
               style={styles.consentAlert}
-              onPress={() => router.push('/(parent)/consent')}
+              onPress={() => router.push('/(parent)/media')}
               activeOpacity={0.7}
             >
               <View style={styles.consentAlertContent}>
@@ -465,28 +465,37 @@ export default function ParentDashboard() {
           </View>
         )}
 
-        {/* Gallery Section */}
+        {/* Quick Actions */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>📸 Gallery</Text>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.galleryCard}
-            onPress={() => router.push('/(parent)/media')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.galleryIconContainer}>
-              <IconSymbol name="photo.on.rectangle" size={32} color={colors.white} />
-            </View>
-            <View style={styles.galleryContent}>
-              <Text style={styles.galleryTitle}>View & Download Photos</Text>
-              <Text style={styles.galleryDescription}>
-                Access photos and videos of your children
-              </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
+          <View style={styles.quickActionsGrid}>
+            <TouchableOpacity
+              style={styles.quickActionCard}
+              onPress={() => router.push('/(parent)/media')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: colors.accent }]}>
+                <IconSymbol name="photo.on.rectangle" size={28} color={colors.white} />
+              </View>
+              <Text style={styles.quickActionTitle}>Gallery</Text>
+              <Text style={styles.quickActionSubtitle}>Photos & Videos</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionCard}
+              onPress={() => router.push('/(parent)/attendance')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: colors.success }]}>
+                <IconSymbol name="checkmark.circle.fill" size={28} color={colors.white} />
+              </View>
+              <Text style={styles.quickActionTitle}>Attendance</Text>
+              <Text style={styles.quickActionSubtitle}>View History</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Payments Section */}
@@ -716,40 +725,40 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 16,
   },
-  galleryCard: {
+  quickActionsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  quickActionCard: {
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
   },
-  galleryIconContainer: {
+  quickActionIcon: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 12,
   },
-  galleryContent: {
-    flex: 1,
-  },
-  galleryTitle: {
+  quickActionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
   },
-  galleryDescription: {
-    fontSize: 14,
+  quickActionSubtitle: {
+    fontSize: 12,
     color: colors.textSecondary,
+    textAlign: 'center',
   },
   paymentCard: {
     backgroundColor: colors.card,

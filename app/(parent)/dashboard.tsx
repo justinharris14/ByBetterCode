@@ -432,6 +432,30 @@ export default function ParentDashboard() {
           </View>
         </View>
 
+        {/* Gallery Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>📸 Gallery</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.galleryCard}
+            onPress={() => router.push('/(parent)/media')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.galleryIconContainer}>
+              <IconSymbol name="photo.on.rectangle" size={32} color={colors.white} />
+            </View>
+            <View style={styles.galleryContent}>
+              <Text style={styles.galleryTitle}>View & Download Photos</Text>
+              <Text style={styles.galleryDescription}>
+                Access photos and videos of your children
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
         {/* Payments Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -658,6 +682,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 16,
+  },
+  galleryCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  galleryIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  galleryContent: {
+    flex: 1,
+  },
+  galleryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  galleryDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   paymentCard: {
     backgroundColor: colors.card,

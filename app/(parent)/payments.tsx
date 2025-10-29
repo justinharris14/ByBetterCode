@@ -11,7 +11,7 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '@/lib/supabase';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -137,40 +137,29 @@ export default function ParentPaymentsScreen() {
         return;
       }
 
-      // For mobile, download the file
+      // For mobile, download the file using the new API
       const filename = `receipt_${payment.payment_id}.pdf`;
-      const docDir = FileSystem.documentDirectory ? FileSystem.documentDirectory : '';
-      const fileUri = docDir + filename;
 
       Alert.alert('Downloading', 'Downloading receipt...');
 
-      const downloadResult = await FileSystem.downloadAsync(
+      const downloadedFile = await File.downloadFileAsync(
         payment.receipt_url,
-        fileUri
+        Paths.document
       );
 
-      if (downloadResult.status === 200) {
-        Alert.alert(
-          'Success',
-          'Receipt downloaded successfully!',
-          [
-            {
-              text: 'Open',
-              onPress: () => {
-                if (Platform.OS === 'ios') {
-                  Linking.openURL(downloadResult.uri);
-                } else {
-                  // On Android, you might need to use a file viewer
-                  Linking.openURL(downloadResult.uri);
-                }
-              },
+      Alert.alert(
+        'Success',
+        'Receipt downloaded successfully!',
+        [
+          {
+            text: 'Open',
+            onPress: () => {
+              Linking.openURL(downloadedFile.uri);
             },
-            { text: 'OK' },
-          ]
-        );
-      } else {
-        Alert.alert('Error', 'Failed to download receipt. Please try again.');
-      }
+          },
+          { text: 'OK' },
+        ]
+      );
     } catch (error) {
       console.error('Error downloading receipt:', error);
       Alert.alert('Error', 'Unable to download receipt. Please try again.');

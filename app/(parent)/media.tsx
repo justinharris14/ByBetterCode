@@ -21,7 +21,7 @@ import { Media, Child, MediaConsent, ConsentType, UsagePermission } from '@/type
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 
 const { width } = Dimensions.get('window');
@@ -142,28 +142,19 @@ export default function ParentMediaScreen() {
       const childName = getChildName(mediaItem.child_id).replace(/\s+/g, '_');
       const timestamp = new Date(mediaItem.uploaded_at).getTime();
       const fileName = `CrecheConnect_${childName}_${timestamp}.${extension}`;
-      
-      // Define file path - use string concatenation to avoid lint errors
-      const documentDirectory = FileSystem.documentDirectory ? FileSystem.documentDirectory : (FileSystem.cacheDirectory ? FileSystem.cacheDirectory : '');
-      const fileUri = documentDirectory + fileName;
 
-      // Download the file
+      // Download the file using the new API
       console.log('Downloading from:', mediaItem.media_url);
-      console.log('Saving to:', fileUri);
 
-      const downloadResult = await FileSystem.downloadAsync(
+      const downloadedFile = await File.downloadFileAsync(
         mediaItem.media_url,
-        fileUri
+        Paths.cache
       );
 
-      if (downloadResult.status !== 200) {
-        throw new Error('Download failed with status: ' + downloadResult.status);
-      }
-
-      console.log('Download complete:', downloadResult.uri);
+      console.log('Download complete:', downloadedFile.uri);
 
       // Save to media library
-      const asset = await MediaLibrary.saveToLibraryAsync(downloadResult.uri);
+      const asset = await MediaLibrary.saveToLibraryAsync(downloadedFile.uri);
       console.log('Saved to library:', asset);
 
       Alert.alert(
@@ -174,7 +165,7 @@ export default function ParentMediaScreen() {
 
       // Clean up the temporary file
       try {
-        await FileSystem.deleteAsync(downloadResult.uri, { idempotent: true });
+        downloadedFile.delete();
       } catch (cleanupError) {
         console.log('Cleanup error (non-critical):', cleanupError);
       }

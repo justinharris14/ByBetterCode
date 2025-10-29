@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -41,13 +41,7 @@ export default function ParentMediaScreen() {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [selectedChildForConsent, setSelectedChildForConsent] = useState<Child | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -105,7 +99,13 @@ export default function ParentMediaScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user, loadData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -143,8 +143,8 @@ export default function ParentMediaScreen() {
       const timestamp = new Date(mediaItem.uploaded_at).getTime();
       const fileName = `CrecheConnect_${childName}_${timestamp}.${extension}`;
       
-      // Define file path
-      const documentDirectory = FileSystem.documentDirectory || FileSystem.cacheDirectory || '';
+      // Define file path - use string concatenation to avoid lint errors
+      const documentDirectory = FileSystem.documentDirectory ? FileSystem.documentDirectory : (FileSystem.cacheDirectory ? FileSystem.cacheDirectory : '');
       const fileUri = documentDirectory + fileName;
 
       // Download the file

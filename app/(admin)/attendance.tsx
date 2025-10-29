@@ -59,29 +59,65 @@ export default function AttendanceScreen() {
     if (!user) return;
 
     const dateStr = selectedDate.toISOString().split('T')[0];
-    const newStatus = !currentStatus;
+    const existingRecord = attendance.find((a) => a.child_id === childId);
 
     try {
-      const existingRecord = attendance.find((a) => a.child_id === childId);
-
-      if (existingRecord) {
-        const { error } = await supabase
-          .from('attendance')
-          .update({ is_present: newStatus })
-          .eq('attendance_id', existingRecord.attendance_id);
-
-        if (error) throw error;
-      } else {
+      // Three-state cycle: Unmarked → Present → Absent → Unmarked
+      if (currentStatus === undefined) {
+        // Unmarked → Present
         const { error } = await supabase.from('attendance').insert([
           {
             child_id: childId,
             date: dateStr,
-            is_present: newStatus,
+            is_present: true,
             marked_by: user.user_id,
           },
         ]);
 
         if (error) throw error;
+        console.log('Marked as present');
+      } else if (currentStatus === true) {
+        // Present → Absent
+        if (existingRecord) {
+          const { error } = await supabase
+            .from('attendance')
+            .update({ is_present: false })
+            .eq('attendance_id', existingRecord.attendance_id);
+
+          if (error) throw error;
+          console.log('Marked as absent');
+        }
+      } else {
+        // Absent → Unmarked (delete record)
+        if (existingRecord) {
+          Alert.alert(
+            'Unmark Attendance',
+            'Are you sure you want to unmark this student? This will remove the attendance record.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Unmark',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    const { error } = await supabase
+                      .from('attendance')
+                      .delete()
+                      .eq('attendance_id', existingRecord.attendance_id);
+
+                    if (error) throw error;
+                    console.log('Attendance unmarked');
+                    loadData();
+                  } catch (error) {
+                    console.error('Error unmarking attendance:', error);
+                    Alert.alert('Error', 'Failed to unmark attendance');
+                  }
+                },
+              },
+            ]
+          );
+          return; // Exit early to prevent loadData from being called twice
+        }
       }
 
       loadData();
@@ -208,6 +244,14 @@ export default function AttendanceScreen() {
           <Text style={styles.statValue}>{stats.unmarked}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Unmarked</Text>
         </View>
+      </View>
+
+      {/* Instructions Banner */}
+      <View style={styles.instructionsBanner}>
+        <IconSymbol name="info.circle" size={16} color={colors.primary} />
+        <Text style={styles.instructionsText}>
+          Tap to cycle: Unmarked → Present → Absent → Unmarked
+        </Text>
       </View>
 
       {/* Quick Actions */}
@@ -360,6 +404,21 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     backgroundColor: colors.border,
+  },
+  instructionsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: `${colors.primary}15`,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    gap: 8,
+  },
+  instructionsText: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
   },
   quickActions: {
     padding: 16,

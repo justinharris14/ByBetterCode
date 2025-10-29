@@ -34,6 +34,13 @@ export default function MediaScreen() {
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterChild, setFilterChild] = useState<string>('');
+  const [filterMediaType, setFilterMediaType] = useState<string>('');
+  const [filterConsent, setFilterConsent] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
+  
   // Upload form state
   const [selectedChild, setSelectedChild] = useState<string>('');
   const [caption, setCaption] = useState('');
@@ -105,7 +112,7 @@ export default function MediaScreen() {
         mediaTypes: ['images', 'videos'],
         allowsEditing: true,
         quality: 0.8,
-        videoMaxDuration: 60, // 60 seconds max
+        videoMaxDuration: 60,
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -132,23 +139,18 @@ export default function MediaScreen() {
     setUploading(true);
 
     try {
-      // Determine media type
       const isVideo = selectedImage.type === 'video';
       const mediaKind = isVideo ? 'video' : 'photo';
       
-      // Get file extension
       const uriParts = selectedImage.uri.split('.');
       const fileExtension = uriParts[uriParts.length - 1];
       
-      // Create unique filename
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
       const filePath = `${selectedChild}/${fileName}`;
 
-      // Convert URI to blob for upload
       const response = await fetch(selectedImage.uri);
       const blob = await response.blob();
 
-      // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('media')
         .upload(filePath, blob, {
@@ -158,12 +160,10 @@ export default function MediaScreen() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('media')
         .getPublicUrl(filePath);
 
-      // Save media record to database
       const { error: dbError } = await supabase
         .from('media')
         .insert({
@@ -179,14 +179,12 @@ export default function MediaScreen() {
 
       Alert.alert('Success', 'Media uploaded successfully!');
       
-      // Reset form
       setModalVisible(false);
       setSelectedImage(null);
       setSelectedChild('');
       setCaption('');
       setConsentGranted(false);
       
-      // Reload data
       await loadData();
     } catch (error) {
       console.error('Error uploading media:', error);
@@ -207,19 +205,16 @@ export default function MediaScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Extract file path from URL
               const url = new URL(mediaItem.media_url);
               const pathParts = url.pathname.split('/media/');
               const filePath = pathParts[1];
 
-              // Delete from storage
               const { error: storageError } = await supabase.storage
                 .from('media')
                 .remove([filePath]);
 
               if (storageError) throw storageError;
 
-              // Delete from database
               const { error: dbError } = await supabase
                 .from('media')
                 .delete()
@@ -249,6 +244,37 @@ export default function MediaScreen() {
     return child ? `${child.first_name} ${child.last_name}` : 'Unknown';
   };
 
+  // Filter function
+  const getFilteredMedia = () => {
+    return media.filter((item) => {
+      // Search query filter (caption or child name)
+      const childName = getChildName(item.child_id);
+      const matchesSearch = searchQuery === '' || 
+        `${item.caption || ''} ${childName}`.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Child filter
+      const matchesChild = filterChild === '' || item.child_id === filterChild;
+
+      // Media type filter
+      const matchesMediaType = filterMediaType === '' || item.media_kind === filterMediaType;
+
+      // Consent filter
+      const matchesConsent = filterConsent === '' || 
+        (filterConsent === 'granted' ? item.consent_granted : !item.consent_granted);
+
+      return matchesSearch && matchesChild && matchesMediaType && matchesConsent;
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterChild('');
+    setFilterMediaType('');
+    setFilterConsent('');
+  };
+
+  const hasActiveFilters = searchQuery !== '' || filterChild !== '' || filterMediaType !== '' || filterConsent !== '';
+
   if (loading) {
     return (
       <View style={[commonStyles.container, commonStyles.center]}>
@@ -258,6 +284,8 @@ export default function MediaScreen() {
     );
   }
 
+  const filteredMedia = getFilteredMedia();
+
   return (
     <View style={commonStyles.container}>
       <ScrollView
@@ -265,22 +293,144 @@ export default function MediaScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <TouchableOpacity style={[buttonStyles.primary, styles.uploadButton]} onPress={pickImage}>
-          <IconSymbol name="photo.badge.plus" size={20} color={colors.white} />
-          <Text style={styles.uploadButtonText}>Upload Photo/Video</Text>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by caption or child..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Filter Toggle Button */}
+        <TouchableOpacity 
+          style={[styles.filterToggle, hasActiveFilters && styles.filterToggleActive]}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <IconSymbol name="line.3.horizontal.decrease.circle" size={20} color={hasActiveFilters ? colors.primary : colors.text} />
+          <Text style={[styles.filterToggleText, hasActiveFilters && styles.filterToggleTextActive]}>
+            Filters {hasActiveFilters && `(${[filterChild, filterMediaType, filterConsent].filter(f => f !== '').length})`}
+          </Text>
+          <IconSymbol name={showFilters ? "chevron.up" : "chevron.down"} size={16} color={hasActiveFilters ? colors.primary : colors.text} />
         </TouchableOpacity>
 
-        {media.length === 0 ? (
+        {/* Filter Options */}
+        {showFilters && (
+          <View style={styles.filterContainer}>
+            {/* Child Filter */}
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>Child:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterChild === '' && styles.filterChipActive]}
+                  onPress={() => setFilterChild('')}
+                >
+                  <Text style={[styles.filterChipText, filterChild === '' && styles.filterChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                {children.map((child) => (
+                  <TouchableOpacity
+                    key={child.child_id}
+                    style={[styles.filterChip, filterChild === child.child_id && styles.filterChipActive]}
+                    onPress={() => setFilterChild(child.child_id)}
+                  >
+                    <Text style={[styles.filterChipText, filterChild === child.child_id && styles.filterChipTextActive]}>
+                      {child.first_name} {child.last_name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Media Type Filter */}
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>Type:</Text>
+              <View style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterMediaType === '' && styles.filterChipActive]}
+                  onPress={() => setFilterMediaType('')}
+                >
+                  <Text style={[styles.filterChipText, filterMediaType === '' && styles.filterChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterMediaType === 'photo' && styles.filterChipActive]}
+                  onPress={() => setFilterMediaType('photo')}
+                >
+                  <Text style={[styles.filterChipText, filterMediaType === 'photo' && styles.filterChipTextActive]}>Photos</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterMediaType === 'video' && styles.filterChipActive]}
+                  onPress={() => setFilterMediaType('video')}
+                >
+                  <Text style={[styles.filterChipText, filterMediaType === 'video' && styles.filterChipTextActive]}>Videos</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Consent Filter */}
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>Consent:</Text>
+              <View style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterConsent === '' && styles.filterChipActive]}
+                  onPress={() => setFilterConsent('')}
+                >
+                  <Text style={[styles.filterChipText, filterConsent === '' && styles.filterChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterConsent === 'granted' && styles.filterChipActive]}
+                  onPress={() => setFilterConsent('granted')}
+                >
+                  <Text style={[styles.filterChipText, filterConsent === 'granted' && styles.filterChipTextActive]}>Granted</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, filterConsent === 'not_granted' && styles.filterChipActive]}
+                  onPress={() => setFilterConsent('not_granted')}
+                >
+                  <Text style={[styles.filterChipText, filterConsent === 'not_granted' && styles.filterChipTextActive]}>Not Granted</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {hasActiveFilters && (
+              <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+                <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Results Count and Upload Button */}
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsCount}>
+            {filteredMedia.length} {filteredMedia.length === 1 ? 'item' : 'items'} found
+          </Text>
+          <TouchableOpacity style={[buttonStyles.primary, styles.uploadButton]} onPress={pickImage}>
+            <IconSymbol name="photo.badge.plus" size={18} color={colors.white} />
+            <Text style={styles.uploadButtonText}>Upload</Text>
+          </TouchableOpacity>
+        </View>
+
+        {filteredMedia.length === 0 ? (
           <View style={styles.emptyState}>
             <IconSymbol name="photo.on.rectangle" size={64} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>No media uploaded yet</Text>
+            <Text style={styles.emptyText}>
+              {hasActiveFilters ? 'No media matches your filters' : 'No media uploaded yet'}
+            </Text>
             <Text style={styles.emptySubtext}>
-              Tap the button above to upload photos or videos
+              {hasActiveFilters ? 'Try adjusting your filters' : 'Tap the button above to upload photos or videos'}
             </Text>
           </View>
         ) : (
           <View style={styles.mediaGrid}>
-            {media.map((item) => (
+            {filteredMedia.map((item) => (
               <TouchableOpacity
                 key={item.media_id}
                 style={styles.mediaCard}
@@ -319,12 +469,7 @@ export default function MediaScreen() {
       </ScrollView>
 
       {/* Upload Modal */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
+      <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -349,10 +494,7 @@ export default function MediaScreen() {
               )}
 
               <Text style={styles.label}>Select Child *</Text>
-              <TouchableOpacity
-                style={styles.picker}
-                onPress={() => setChildPickerVisible(true)}
-              >
+              <TouchableOpacity style={styles.picker} onPress={() => setChildPickerVisible(true)}>
                 <Text style={selectedChild ? styles.pickerText : styles.pickerPlaceholder}>
                   {selectedChild ? getChildName(selectedChild) : 'Select a child'}
                 </Text>
@@ -370,10 +512,7 @@ export default function MediaScreen() {
                 numberOfLines={3}
               />
 
-              <TouchableOpacity
-                style={styles.checkboxContainer}
-                onPress={() => setConsentGranted(!consentGranted)}
-              >
+              <TouchableOpacity style={styles.checkboxContainer} onPress={() => setConsentGranted(!consentGranted)}>
                 <View style={[styles.checkbox, consentGranted && styles.checkboxChecked]}>
                   {consentGranted && (
                     <IconSymbol name="checkmark" size={16} color={colors.white} />
@@ -399,12 +538,7 @@ export default function MediaScreen() {
       </Modal>
 
       {/* Child Picker Modal */}
-      <Modal
-        visible={childPickerVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setChildPickerVisible(false)}
-      >
+      <Modal visible={childPickerVisible} animationType="slide" transparent={true} onRequestClose={() => setChildPickerVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.pickerModal}>
             <View style={styles.modalHeader}>
@@ -437,28 +571,16 @@ export default function MediaScreen() {
       </Modal>
 
       {/* View Media Modal */}
-      <Modal
-        visible={viewModalVisible}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setViewModalVisible(false)}
-      >
+      <Modal visible={viewModalVisible} animationType="fade" transparent={true} onRequestClose={() => setViewModalVisible(false)}>
         <View style={styles.viewModalOverlay}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setViewModalVisible(false)}
-          >
+          <TouchableOpacity style={styles.closeButton} onPress={() => setViewModalVisible(false)}>
             <IconSymbol name="xmark.circle.fill" size={36} color={colors.white} />
           </TouchableOpacity>
           
           {selectedMedia && (
             <View style={styles.viewModalContent}>
               {selectedMedia.media_kind === 'photo' ? (
-                <Image
-                  source={{ uri: selectedMedia.media_url }}
-                  style={styles.fullImage}
-                  resizeMode="contain"
-                />
+                <Image source={{ uri: selectedMedia.media_url }} style={styles.fullImage} resizeMode="contain" />
               ) : (
                 <View style={styles.videoFullPlaceholder}>
                   <IconSymbol name="play.circle.fill" size={80} color={colors.white} />
@@ -498,16 +620,122 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
-  uploadButton: {
-    marginBottom: 20,
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: colors.text,
+  },
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterToggleActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.lightBlue,
+  },
+  filterToggleText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  filterToggleTextActive: {
+    color: colors.primary,
+  },
+  filterContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterRow: {
+    marginBottom: 16,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.lightGray,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: colors.white,
+  },
+  clearFiltersButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  clearFiltersText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  resultsCount: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   uploadButtonText: {
     color: colors.white,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   emptyState: {

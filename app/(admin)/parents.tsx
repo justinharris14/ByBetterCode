@@ -22,6 +22,12 @@ export default function ParentsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingParent, setEditingParent] = useState<User | null>(null);
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCity, setFilterCity] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
+  
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -173,6 +179,37 @@ export default function ParentsScreen() {
     );
   };
 
+  // Get unique cities for filter
+  const getUniqueCities = () => {
+    const cities = parents
+      .map(p => p.city)
+      .filter((city): city is string => !!city)
+      .filter((city, index, self) => self.indexOf(city) === index)
+      .sort();
+    return cities;
+  };
+
+  // Filter function
+  const getFilteredParents = () => {
+    return parents.filter((parent) => {
+      // Search query filter (name, email, or phone)
+      const matchesSearch = searchQuery === '' || 
+        `${parent.first_name} ${parent.last_name} ${parent.email} ${parent.phone || ''}`.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // City filter
+      const matchesCity = filterCity === '' || parent.city === filterCity;
+
+      return matchesSearch && matchesCity;
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterCity('');
+  };
+
+  const hasActiveFilters = searchQuery !== '' || filterCity !== '';
+
   if (loading) {
     return (
       <View style={[commonStyles.container, commonStyles.center]}>
@@ -181,6 +218,9 @@ export default function ParentsScreen() {
     );
   }
 
+  const filteredParents = getFilteredParents();
+  const uniqueCities = getUniqueCities();
+
   return (
     <View style={commonStyles.container}>
       <ScrollView
@@ -188,16 +228,90 @@ export default function ParentsScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <TouchableOpacity style={[buttonStyles.primary, styles.addButton]} onPress={openAddModal}>
-          <Text style={styles.addButtonText}>+ Add Parent</Text>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name, email, or phone..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Filter Toggle Button */}
+        <TouchableOpacity 
+          style={[styles.filterToggle, hasActiveFilters && styles.filterToggleActive]}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <IconSymbol name="line.3.horizontal.decrease.circle" size={20} color={hasActiveFilters ? colors.primary : colors.text} />
+          <Text style={[styles.filterToggleText, hasActiveFilters && styles.filterToggleTextActive]}>
+            Filters {hasActiveFilters && `(${[filterCity].filter(f => f !== '').length})`}
+          </Text>
+          <IconSymbol name={showFilters ? "chevron.up" : "chevron.down"} size={16} color={hasActiveFilters ? colors.primary : colors.text} />
         </TouchableOpacity>
 
-        {parents.length === 0 ? (
+        {/* Filter Options */}
+        {showFilters && (
+          <View style={styles.filterContainer}>
+            {/* City Filter */}
+            {uniqueCities.length > 0 && (
+              <View style={styles.filterRow}>
+                <Text style={styles.filterLabel}>City:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
+                  <TouchableOpacity
+                    style={[styles.filterChip, filterCity === '' && styles.filterChipActive]}
+                    onPress={() => setFilterCity('')}
+                  >
+                    <Text style={[styles.filterChipText, filterCity === '' && styles.filterChipTextActive]}>All</Text>
+                  </TouchableOpacity>
+                  {uniqueCities.map((city) => (
+                    <TouchableOpacity
+                      key={city}
+                      style={[styles.filterChip, filterCity === city && styles.filterChipActive]}
+                      onPress={() => setFilterCity(city)}
+                    >
+                      <Text style={[styles.filterChipText, filterCity === city && styles.filterChipTextActive]}>
+                        {city}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {hasActiveFilters && (
+              <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+                <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Results Count */}
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsCount}>
+            {filteredParents.length} {filteredParents.length === 1 ? 'parent' : 'parents'} found
+          </Text>
+          <TouchableOpacity style={[buttonStyles.primary, styles.addButton]} onPress={openAddModal}>
+            <Text style={styles.addButtonText}>+ Add Parent</Text>
+          </TouchableOpacity>
+        </View>
+
+        {filteredParents.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No parents registered yet</Text>
+            <Text style={styles.emptyText}>
+              {hasActiveFilters ? 'No parents match your filters' : 'No parents registered yet'}
+            </Text>
           </View>
         ) : (
-          parents.map((parent) => (
+          filteredParents.map((parent) => (
             <View key={parent.user_id} style={commonStyles.cardWhite}>
               <View style={styles.parentHeader}>
                 <View style={styles.parentInfo}>
@@ -401,12 +515,119 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: colors.text,
+  },
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterToggleActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.lightBlue,
+  },
+  filterToggleText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  filterToggleTextActive: {
+    color: colors.primary,
+  },
+  filterContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterRow: {
+    marginBottom: 16,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.lightGray,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: colors.white,
+  },
+  clearFiltersButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  clearFiltersText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  resultsCount: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
   addButton: {
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   addButtonText: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   emptyState: {

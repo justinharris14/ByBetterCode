@@ -13,6 +13,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { Attendance, Child } from '@/types/database.types';
+import AttendanceGraph from '@/components/AttendanceGraph';
 
 interface AttendanceWithChild extends Attendance {
   child?: Child;
@@ -50,7 +51,7 @@ export default function ParentAttendanceScreen() {
         .select('*, children(*)')
         .in('child_id', childIds)
         .order('date', { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (attendanceError) throw attendanceError;
 
@@ -80,6 +81,13 @@ export default function ParentAttendanceScreen() {
     setRefreshing(false);
   };
 
+  // Prepare data for the graph
+  const graphData = attendance.map((record) => ({
+    date: record.date,
+    is_present: record.is_present,
+    child_name: record.child ? `${record.child.first_name} ${record.child.last_name}` : '',
+  }));
+
   if (loading) {
     return (
       <View style={[commonStyles.container, commonStyles.center]}>
@@ -99,13 +107,21 @@ export default function ParentAttendanceScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
+        {/* Attendance Graph */}
+        <AttendanceGraph data={graphData} />
+
+        {/* Recent Attendance Records */}
+        <View style={styles.recentSection}>
+          <Text style={styles.sectionTitle}>Recent Records</Text>
+        </View>
+
         {attendance.length === 0 ? (
           <View style={styles.emptyState}>
             <IconSymbol name="checkmark.circle" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No attendance records yet</Text>
           </View>
         ) : (
-          attendance.map((record) => (
+          attendance.slice(0, 20).map((record) => (
             <View
               key={record.attendance_id}
               style={[
@@ -167,6 +183,15 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 140,
+  },
+  recentSection: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
   },
   emptyState: {
     padding: 40,

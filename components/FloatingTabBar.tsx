@@ -13,11 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '@react-navigation/native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -44,9 +39,6 @@ export default function FloatingTabBar({
   const router = useRouter();
   const pathname = usePathname();
   const theme = useTheme();
-  
-  // Use separate shared values for better worklet performance
-  const translateX = useSharedValue(0);
 
   // Calculate tab width once
   const tabWidth = React.useMemo(() => {
@@ -80,27 +72,9 @@ export default function FloatingTabBar({
     return bestMatch >= 0 ? bestMatch : 0;
   }, [pathname, tabs]);
 
-  // Update translateX when active tab changes
-  React.useEffect(() => {
-    const newTranslateX = activeTabIndex * tabWidth;
-    translateX.value = withSpring(newTranslateX, {
-      damping: 20,
-      stiffness: 120,
-      mass: 1,
-    });
-  }, [activeTabIndex, tabWidth, translateX]);
-
   const handleTabPress = React.useCallback((route: string) => {
     router.push(route);
   }, [router]);
-
-  // Simplified animated style with minimal worklet complexity
-  const indicatorStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      transform: [{ translateX: translateX.value }],
-    };
-  }, []);
 
   // Dynamic styles based on theme
   const dynamicStyles = React.useMemo(() => ({
@@ -141,8 +115,9 @@ export default function FloatingTabBar({
         ? 'rgba(255, 255, 255, 0.08)'
         : 'rgba(0, 0, 0, 0.04)',
       width: tabWidth - 8,
+      left: 8 + (activeTabIndex * tabWidth),
     },
-  }), [theme.dark, tabWidth]);
+  }), [theme.dark, tabWidth, activeTabIndex]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
@@ -158,7 +133,7 @@ export default function FloatingTabBar({
           style={[dynamicStyles.blurContainer, { borderRadius }]}
         >
           <View style={dynamicStyles.background} />
-          <Animated.View style={[dynamicStyles.indicator, indicatorStyle]} />
+          <View style={dynamicStyles.indicator} />
           <View style={styles.tabsContainer}>
             {tabs.map((tab, index) => {
               const isActive = activeTabIndex === index;
@@ -220,7 +195,6 @@ const styles = StyleSheet.create({
   indicator: {
     position: 'absolute',
     top: 8,
-    left: 8,
     bottom: 8,
     borderRadius: 20,
   },

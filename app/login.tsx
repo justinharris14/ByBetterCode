@@ -19,16 +19,10 @@ import { IconSymbol } from '@/components/IconSymbol';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, signUp, loading } = useAuth();
+  const { signIn, loading } = useAuth();
   
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'admin' | 'parent'>('parent');
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSignIn = async () => {
@@ -45,57 +39,6 @@ export default function LoginScreen() {
     } else {
       Alert.alert('Sign In Failed', result.message || 'Invalid email or password');
     }
-  };
-
-  const handleSignUp = async () => {
-    if (!email || !password || !firstName || !lastName) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
-    const result = await signUp(email, password, {
-      first_name: firstName,
-      last_name: lastName,
-      phone: phone,
-      role: role,
-      email: email,
-    });
-
-    if (result.success) {
-      Alert.alert(
-        'Success!',
-        result.message || 'Account created successfully! Please check your email to verify your account.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Switch to sign in mode
-              setIsSignUp(false);
-              setPassword('');
-              setConfirmPassword('');
-            },
-          },
-        ]
-      );
-    } else {
-      Alert.alert('Sign Up Failed', result.message || 'Failed to create account');
-    }
-  };
-
-  const toggleMode = () => {
-    setIsSignUp(!isSignUp);
-    setPassword('');
-    setConfirmPassword('');
   };
 
   return (
@@ -115,87 +58,7 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.formContainer}>
-            <Text style={styles.formTitle}>
-              {isSignUp ? 'Create Account' : 'Welcome Back'}
-            </Text>
-
-            {isSignUp && (
-              <>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>First Name *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    placeholder="Enter your first name"
-                    placeholderTextColor={colors.textSecondary}
-                    autoCapitalize="words"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Last Name *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={lastName}
-                    onChangeText={setLastName}
-                    placeholder="Enter your last name"
-                    placeholderTextColor={colors.textSecondary}
-                    autoCapitalize="words"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Phone Number</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="Enter your phone number"
-                    placeholderTextColor={colors.textSecondary}
-                    keyboardType="phone-pad"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Role *</Text>
-                  <View style={styles.roleContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.roleButton,
-                        role === 'parent' && styles.roleButtonActive,
-                      ]}
-                      onPress={() => setRole('parent')}
-                    >
-                      <Text
-                        style={[
-                          styles.roleButtonText,
-                          role === 'parent' && styles.roleButtonTextActive,
-                        ]}
-                      >
-                        👨‍👩‍👧‍👦 Parent
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.roleButton,
-                        role === 'admin' && styles.roleButtonActive,
-                      ]}
-                      onPress={() => setRole('admin')}
-                    >
-                      <Text
-                        style={[
-                          styles.roleButtonText,
-                          role === 'admin' && styles.roleButtonTextActive,
-                        ]}
-                      >
-                        👨‍💼 Admin
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </>
-            )}
+            <Text style={styles.formTitle}>Welcome Back</Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email *</Text>
@@ -236,61 +99,33 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {isSignUp && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirm Password *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholder="Confirm your password"
-                  placeholderTextColor={colors.textSecondary}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                />
-              </View>
-            )}
-
-            {!isSignUp && (
-              <TouchableOpacity
-                style={styles.forgotPasswordButton}
-                onPress={() => router.push('/forgot-password')}
-                disabled={loading}
-              >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={styles.forgotPasswordButton}
+              onPress={() => router.push('/forgot-password')}
+              disabled={loading}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-              onPress={isSignUp ? handleSignUp : handleSignIn}
+              onPress={handleSignIn}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.submitButtonText}>
-                  {isSignUp ? 'Create Account' : 'Sign In'}
-                </Text>
+                <Text style={styles.submitButtonText}>Sign In</Text>
               )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.toggleButton}
-              onPress={toggleMode}
-              disabled={loading}
-            >
-              <Text style={styles.toggleButtonText}>
-                {isSignUp
-                  ? 'Already have an account? Sign In'
-                  : 'Don&apos;t have an account? Sign Up'}
-              </Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               ✅ Secure authentication with Supabase
+            </Text>
+            <Text style={styles.footerNote}>
+              Contact your administrator for account access
             </Text>
           </View>
         </View>
@@ -382,30 +217,6 @@ const styles = StyleSheet.create({
   eyeButton: {
     padding: 12,
   },
-  roleContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  roleButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  roleButtonActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '10',
-  },
-  roleButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  roleButtonTextActive: {
-    color: colors.primary,
-  },
   submitButton: {
     backgroundColor: colors.primary,
     borderRadius: 8,
@@ -431,15 +242,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
   },
-  toggleButton: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  toggleButtonText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '600',
-  },
   footer: {
     marginTop: 24,
     alignItems: 'center',
@@ -449,5 +251,11 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     textAlign: 'center',
     fontWeight: '600',
+    marginBottom: 8,
+  },
+  footerNote: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });

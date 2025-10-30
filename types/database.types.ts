@@ -103,7 +103,35 @@ export interface Payment {
   due_date?: string;
   description?: string;
   receipt_url?: string;
+  stripe_payment_intent_id?: string;
+  stripe_charge_id?: string;
+  stripe_customer_id?: string;
+  receipt_number?: string;
   created_at: string;
+}
+
+export interface StripeReceipt {
+  receipt_url: string;
+  receipt_number: string;
+  amount: number;
+  currency: string;
+  status: string;
+  created: number;
+  description: string;
+  payment_method_details: any;
+}
+
+export interface StripePaymentHistory {
+  payment_intent_id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  created: number;
+  description: string;
+  receipt_url: string | null;
+  receipt_number: string | null;
+  payment_method: string;
+  charge_id: string | null;
 }
 
 export interface Announcement {

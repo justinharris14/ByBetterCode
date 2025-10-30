@@ -32,6 +32,10 @@ export default function AdminPaymentsScreen() {
   const [paymentDate, setPaymentDate] = useState('');
   const [description, setDescription] = useState('');
   const [receiptUrl, setReceiptUrl] = useState('');
+  const [stripePaymentIntentId, setStripePaymentIntentId] = useState('');
+  const [stripeChargeId, setStripeChargeId] = useState('');
+  const [stripeCustomerId, setStripeCustomerId] = useState('');
+  const [receiptNumber, setReceiptNumber] = useState('');
   const [showParentPicker, setShowParentPicker] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
 
@@ -82,6 +86,10 @@ export default function AdminPaymentsScreen() {
     setPaymentDate('');
     setDescription('');
     setReceiptUrl('');
+    setStripePaymentIntentId('');
+    setStripeChargeId('');
+    setStripeCustomerId('');
+    setReceiptNumber('');
     setModalVisible(true);
   };
 
@@ -95,6 +103,10 @@ export default function AdminPaymentsScreen() {
     setPaymentDate(payment.payment_date || '');
     setDescription(payment.description || '');
     setReceiptUrl(payment.receipt_url || '');
+    setStripePaymentIntentId(payment.stripe_payment_intent_id || '');
+    setStripeChargeId(payment.stripe_charge_id || '');
+    setStripeCustomerId(payment.stripe_customer_id || '');
+    setReceiptNumber(payment.receipt_number || '');
     setModalVisible(true);
   };
 
@@ -114,6 +126,10 @@ export default function AdminPaymentsScreen() {
         payment_date: paymentDate || null,
         description: description || null,
         receipt_url: receiptUrl || null,
+        stripe_payment_intent_id: stripePaymentIntentId || null,
+        stripe_charge_id: stripeChargeId || null,
+        stripe_customer_id: stripeCustomerId || null,
+        receipt_number: receiptNumber || null,
       };
 
       if (editingPayment) {
@@ -253,6 +269,9 @@ export default function AdminPaymentsScreen() {
                 {payment.description && (
                   <Text style={styles.paymentDescription}>{payment.description}</Text>
                 )}
+                {payment.receipt_number && (
+                  <Text style={styles.receiptNumber}>Receipt #: {payment.receipt_number}</Text>
+                )}
               </View>
               <Text style={styles.paymentAmount}>{formatCurrency(Number(payment.amount))}</Text>
             </View>
@@ -278,6 +297,14 @@ export default function AdminPaymentsScreen() {
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Receipt:</Text>
                   <Text style={[styles.detailValue, { color: colors.primary }]}>Available</Text>
+                </View>
+              )}
+              {payment.stripe_charge_id && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Stripe Charge:</Text>
+                  <Text style={[styles.detailValue, styles.smallText]} numberOfLines={1}>
+                    {payment.stripe_charge_id}
+                  </Text>
                 </View>
               )}
             </View>
@@ -427,6 +454,43 @@ export default function AdminPaymentsScreen() {
                 placeholder="2025-01-15"
               />
 
+              <Text style={styles.sectionHeader}>Stripe Integration (Optional)</Text>
+
+              <Text style={styles.label}>Stripe Payment Intent ID</Text>
+              <TextInput
+                style={commonStyles.input}
+                value={stripePaymentIntentId}
+                onChangeText={setStripePaymentIntentId}
+                placeholder="pi_xxxxxxxxxxxxx"
+                autoCapitalize="none"
+              />
+
+              <Text style={styles.label}>Stripe Charge ID</Text>
+              <TextInput
+                style={commonStyles.input}
+                value={stripeChargeId}
+                onChangeText={setStripeChargeId}
+                placeholder="ch_xxxxxxxxxxxxx"
+                autoCapitalize="none"
+              />
+
+              <Text style={styles.label}>Stripe Customer ID</Text>
+              <TextInput
+                style={commonStyles.input}
+                value={stripeCustomerId}
+                onChangeText={setStripeCustomerId}
+                placeholder="cus_xxxxxxxxxxxxx"
+                autoCapitalize="none"
+              />
+
+              <Text style={styles.label}>Receipt Number</Text>
+              <TextInput
+                style={commonStyles.input}
+                value={receiptNumber}
+                onChangeText={setReceiptNumber}
+                placeholder="1234-5678"
+              />
+
               <Text style={styles.label}>Receipt URL</Text>
               <TextInput
                 style={commonStyles.input}
@@ -443,7 +507,7 @@ export default function AdminPaymentsScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[buttonStyles.outline, { marginTop: 12 }]}
+                style={[buttonStyles.outline, { marginTop: 12, marginBottom: 20 }]}
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={buttonStyles.text}>Cancel</Text>
@@ -540,6 +604,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     fontStyle: 'italic',
+    marginBottom: 2,
+  },
+  receiptNumber: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   paymentAmount: {
     fontSize: 20,
@@ -563,6 +633,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+  },
+  smallText: {
+    fontSize: 11,
+    maxWidth: 200,
   },
   actions: {
     flexDirection: 'row',
@@ -638,6 +712,13 @@ const styles = StyleSheet.create({
   },
   modalScroll: {
     padding: 20,
+  },
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 12,
   },
   label: {
     fontSize: 14,

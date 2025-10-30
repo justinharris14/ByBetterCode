@@ -10,20 +10,24 @@ import {
   Alert,
   Linking,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '@/lib/supabase';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { Payment } from '@/types/database.types';
+import { Payment, StripePaymentHistory } from '@/types/database.types';
 import { colors, commonStyles } from '@/styles/commonStyles';
 
 export default function ParentPaymentsScreen() {
   const { user } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [stripeHistory, setStripeHistory] = useState<StripePaymentHistory[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingStripe, setLoadingStripe] = useState(false);
+  const [showStripeHistory, setShowStripeHistory] = useState(false);
 
   const loadPayments = useCallback(async () => {
     if (!user) return;
@@ -49,6 +53,42 @@ export default function ParentPaymentsScreen() {
     }
   }, [user]);
 
+  const loadStripeHistory = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setLoadingStripe(true);
+      
+      // Get the user's Stripe customer ID from the first payment
+      const customerPayment = payments.find(p => p.stripe_customer_id);
+      if (!customerPayment?.stripe_customer_id) {
+        Alert.alert('Info', 'No Stripe payment history available yet.');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('stripe-receipts', {
+        body: {
+          action: 'get_payment_history',
+          customer_id: customerPayment.stripe_customer_id,
+          limit: 20,
+        },
+      });
+
+      if (error) {
+        console.error('Error loading Stripe history:', error);
+        Alert.alert('Error', 'Failed to load Stripe payment history.');
+      } else {
+        setStripeHistory(data.history || []);
+        setShowStripeHistory(true);
+      }
+    } catch (error) {
+      console.error('Error in loadStripeHistory:', error);
+      Alert.alert('Error', 'Failed to load Stripe payment history.');
+    } finally {
+      setLoadingStripe(false);
+    }
+  }, [user, payments]);
+
   useEffect(() => {
     if (user) {
       loadPayments();
@@ -58,11 +98,16 @@ export default function ParentPaymentsScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     await loadPayments();
+    if (showStripeHistory) {
+      await loadStripeHistory();
+    }
     setRefreshing(false);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (dateString: string | number) => {
+    const date = typeof dateString === 'number' 
+      ? new Date(dateString * 1000) 
+      : new Date(dateString);
     return date.toLocaleDateString('en-ZA', {
       year: 'numeric',
       month: 'short',
@@ -70,8 +115,12 @@ export default function ParentPaymentsScreen() {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return `R${amount.toFixed(2)}`;
+  const formatCurrency = (amount: number, currency: string = 'ZAR') => {
+    // Stripe amounts are in cents
+    const displayAmount = currency === 'usd' || currency === 'zar' 
+      ? amount / 100 
+      : amount;
+    return `R${displayAmount.toFixed(2)}`;
   };
 
   const getDaysUntilDue = (dueDate: string) => {
@@ -87,10 +136,13 @@ export default function ParentPaymentsScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
+      case 'succeeded':
         return '#4CAF50';
       case 'pending':
+      case 'processing':
         return '#FF9800';
       case 'overdue':
+      case 'failed':
         return '#F44336';
       default:
         return colors.textSecondary;
@@ -100,10 +152,13 @@ export default function ParentPaymentsScreen() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'paid':
+      case 'succeeded':
         return 'checkmark.circle.fill';
       case 'pending':
+      case 'processing':
         return 'clock.fill';
       case 'overdue':
+      case 'failed':
         return 'exclamationmark.triangle.fill';
       default:
         return 'circle';
@@ -111,14 +166,46 @@ export default function ParentPaymentsScreen() {
   };
 
   const handleViewReceipt = async (payment: Payment) => {
-    if (!payment.receipt_url) {
+    if (!payment.receipt_url && !payment.stripe_charge_id) {
       Alert.alert('No Receipt', 'No receipt is available for this payment yet.');
       return;
     }
 
     try {
-      console.log('Opening receipt URL:', payment.receipt_url);
-      await WebBrowser.openBrowserAsync(payment.receipt_url);
+      let receiptUrl = payment.receipt_url;
+
+      // If we have a Stripe charge ID but no receipt URL, fetch it from Stripe
+      if (!receiptUrl && payment.stripe_charge_id) {
+        const { data, error } = await supabase.functions.invoke('stripe-receipts', {
+          body: {
+            action: 'get_receipt',
+            charge_id: payment.stripe_charge_id,
+          },
+        });
+
+        if (error) {
+          console.error('Error fetching receipt from Stripe:', error);
+          Alert.alert('Error', 'Unable to fetch receipt from Stripe.');
+          return;
+        }
+
+        receiptUrl = data.receipt_url;
+
+        // Update the local payment record with the receipt URL
+        if (receiptUrl) {
+          await supabase
+            .from('payments')
+            .update({ receipt_url: receiptUrl, receipt_number: data.receipt_number })
+            .eq('payment_id', payment.payment_id);
+        }
+      }
+
+      if (receiptUrl) {
+        console.log('Opening receipt URL:', receiptUrl);
+        await WebBrowser.openBrowserAsync(receiptUrl);
+      } else {
+        Alert.alert('No Receipt', 'Receipt URL not available.');
+      }
     } catch (error) {
       console.error('Error opening receipt:', error);
       Alert.alert('Error', 'Unable to open receipt. Please try again.');
@@ -126,17 +213,42 @@ export default function ParentPaymentsScreen() {
   };
 
   const handleDownloadReceipt = async (payment: Payment) => {
-    if (!payment.receipt_url) {
+    if (!payment.receipt_url && !payment.stripe_charge_id) {
       Alert.alert('No Receipt', 'No receipt is available for this payment yet.');
       return;
     }
 
     try {
-      console.log('Downloading receipt from:', payment.receipt_url);
+      let receiptUrl = payment.receipt_url;
+
+      // If we have a Stripe charge ID but no receipt URL, fetch it from Stripe
+      if (!receiptUrl && payment.stripe_charge_id) {
+        const { data, error } = await supabase.functions.invoke('stripe-receipts', {
+          body: {
+            action: 'get_receipt',
+            charge_id: payment.stripe_charge_id,
+          },
+        });
+
+        if (error) {
+          console.error('Error fetching receipt from Stripe:', error);
+          Alert.alert('Error', 'Unable to fetch receipt from Stripe.');
+          return;
+        }
+
+        receiptUrl = data.receipt_url;
+      }
+
+      if (!receiptUrl) {
+        Alert.alert('No Receipt', 'Receipt URL not available.');
+        return;
+      }
+
+      console.log('Downloading receipt from:', receiptUrl);
 
       // For web, just open the receipt URL in a new tab
       if (Platform.OS === 'web') {
-        window.open(payment.receipt_url, '_blank');
+        window.open(receiptUrl, '_blank');
         Alert.alert('Success', 'Receipt opened in a new tab!');
         return;
       }
@@ -149,7 +261,7 @@ export default function ParentPaymentsScreen() {
 
       // Download file to the document directory
       const downloadedFile = await File.downloadFileAsync(
-        payment.receipt_url,
+        receiptUrl,
         Paths.document,
         filename
       );
@@ -174,6 +286,66 @@ export default function ParentPaymentsScreen() {
       );
     } catch (error) {
       console.error('Error downloading receipt:', error);
+      Alert.alert('Error', 'Unable to download receipt. Please try again.');
+    }
+  };
+
+  const handleViewStripeReceipt = async (stripePayment: StripePaymentHistory) => {
+    if (!stripePayment.receipt_url) {
+      Alert.alert('No Receipt', 'No receipt is available for this payment.');
+      return;
+    }
+
+    try {
+      await WebBrowser.openBrowserAsync(stripePayment.receipt_url);
+    } catch (error) {
+      console.error('Error opening Stripe receipt:', error);
+      Alert.alert('Error', 'Unable to open receipt. Please try again.');
+    }
+  };
+
+  const handleDownloadStripeReceipt = async (stripePayment: StripePaymentHistory) => {
+    if (!stripePayment.receipt_url) {
+      Alert.alert('No Receipt', 'No receipt is available for this payment.');
+      return;
+    }
+
+    try {
+      if (Platform.OS === 'web') {
+        window.open(stripePayment.receipt_url, '_blank');
+        Alert.alert('Success', 'Receipt opened in a new tab!');
+        return;
+      }
+
+      const timestamp = new Date().getTime();
+      const filename = `stripe_receipt_${stripePayment.charge_id}_${timestamp}.pdf`;
+
+      Alert.alert('Downloading', 'Downloading receipt...');
+
+      const downloadedFile = await File.downloadFileAsync(
+        stripePayment.receipt_url,
+        Paths.document,
+        filename
+      );
+
+      Alert.alert(
+        'Success',
+        'Receipt downloaded successfully!',
+        [
+          {
+            text: 'Open',
+            onPress: () => {
+              Linking.openURL(downloadedFile.uri).catch((err) => {
+                console.error('Error opening downloaded file:', err);
+                Alert.alert('Error', 'Unable to open the downloaded file.');
+              });
+            },
+          },
+          { text: 'OK' },
+        ]
+      );
+    } catch (error) {
+      console.error('Error downloading Stripe receipt:', error);
       Alert.alert('Error', 'Unable to download receipt. Please try again.');
     }
   };
@@ -226,9 +398,12 @@ export default function ParentPaymentsScreen() {
               {payment.description && (
                 <Text style={styles.paymentDescription}>{payment.description}</Text>
               )}
+              {payment.receipt_number && (
+                <Text style={styles.receiptNumber}>Receipt #: {payment.receipt_number}</Text>
+              )}
             </View>
           </View>
-          <Text style={styles.paymentAmount}>{formatCurrency(Number(payment.amount))}</Text>
+          <Text style={styles.paymentAmount}>{formatCurrency(Number(payment.amount), 'zar')}</Text>
         </View>
 
         <View style={styles.paymentDetails}>
@@ -267,7 +442,7 @@ export default function ParentPaymentsScreen() {
           )}
         </View>
 
-        {payment.status === 'paid' && payment.receipt_url && (
+        {payment.status === 'paid' && (payment.receipt_url || payment.stripe_charge_id) && (
           <View style={styles.receiptActions}>
             <TouchableOpacity
               style={styles.receiptButton}
@@ -280,6 +455,76 @@ export default function ParentPaymentsScreen() {
             <TouchableOpacity
               style={styles.receiptButton}
               onPress={() => handleDownloadReceipt(payment)}
+            >
+              <IconSymbol name="arrow.down.circle.fill" size={18} color={colors.primary} />
+              <Text style={styles.receiptButtonText}>Download</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderStripePaymentCard = (stripePayment: StripePaymentHistory) => {
+    return (
+      <View key={stripePayment.payment_intent_id} style={styles.paymentCard}>
+        <View style={styles.paymentHeader}>
+          <View style={styles.paymentTitleContainer}>
+            <IconSymbol
+              name={getStatusIcon(stripePayment.status)}
+              size={24}
+              color={getStatusColor(stripePayment.status)}
+            />
+            <View style={styles.paymentTitleText}>
+              <Text style={styles.paymentType}>
+                {stripePayment.description || 'Payment'}
+              </Text>
+              {stripePayment.receipt_number && (
+                <Text style={styles.receiptNumber}>
+                  Receipt #: {stripePayment.receipt_number}
+                </Text>
+              )}
+            </View>
+          </View>
+          <Text style={styles.paymentAmount}>
+            {formatCurrency(stripePayment.amount, stripePayment.currency)}
+          </Text>
+        </View>
+
+        <View style={styles.paymentDetails}>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Status:</Text>
+            <Text style={[styles.detailValue, { color: getStatusColor(stripePayment.status) }]}>
+              {stripePayment.status.toUpperCase()}
+            </Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Date:</Text>
+            <Text style={styles.detailValue}>{formatDate(stripePayment.created)}</Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Payment ID:</Text>
+            <Text style={[styles.detailValue, styles.smallText]} numberOfLines={1}>
+              {stripePayment.payment_intent_id}
+            </Text>
+          </View>
+        </View>
+
+        {stripePayment.receipt_url && (
+          <View style={styles.receiptActions}>
+            <TouchableOpacity
+              style={styles.receiptButton}
+              onPress={() => handleViewStripeReceipt(stripePayment)}
+            >
+              <IconSymbol name="eye.fill" size={18} color={colors.primary} />
+              <Text style={styles.receiptButtonText}>View Receipt</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.receiptButton}
+              onPress={() => handleDownloadStripeReceipt(stripePayment)}
             >
               <IconSymbol name="arrow.down.circle.fill" size={18} color={colors.primary} />
               <Text style={styles.receiptButtonText}>Download</Text>
@@ -324,6 +569,47 @@ export default function ParentPaymentsScreen() {
             <Text style={styles.quickActionText}>Pay Weekly Meals</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Stripe Payment History Button */}
+        <View style={styles.stripeHistoryContainer}>
+          <TouchableOpacity
+            style={styles.stripeHistoryButton}
+            onPress={() => {
+              if (showStripeHistory) {
+                setShowStripeHistory(false);
+              } else {
+                loadStripeHistory();
+              }
+            }}
+            disabled={loadingStripe}
+          >
+            {loadingStripe ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <IconSymbol 
+                  name={showStripeHistory ? "chevron.up" : "chevron.down"} 
+                  size={20} 
+                  color={colors.primary} 
+                />
+                <Text style={styles.stripeHistoryButtonText}>
+                  {showStripeHistory ? 'Hide' : 'View'} Stripe Payment History
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Stripe Payment History */}
+        {showStripeHistory && stripeHistory.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>💰 Stripe Payment History</Text>
+            <Text style={styles.sectionSubtitle}>
+              Complete payment history from Stripe
+            </Text>
+            {stripeHistory.map(renderStripePaymentCard)}
+          </View>
+        )}
 
         {/* Pending/Overdue Payments */}
         {pendingPayments.length > 0 && (
@@ -404,6 +690,26 @@ const styles = StyleSheet.create({
     marginTop: 12,
     textAlign: 'center',
   },
+  stripeHistoryContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  stripeHistoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 16,
+    backgroundColor: colors.primaryLight,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  stripeHistoryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   section: {
     padding: 20,
     paddingTop: 0,
@@ -412,6 +718,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: colors.text,
+    marginBottom: 8,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   paymentCard: {
@@ -457,6 +768,12 @@ const styles = StyleSheet.create({
   paymentDescription: {
     fontSize: 14,
     color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  receiptNumber: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   paymentAmount: {
     fontSize: 20,
@@ -479,6 +796,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+  },
+  smallText: {
+    fontSize: 11,
+    maxWidth: 200,
   },
   reminderContainer: {
     flexDirection: 'row',

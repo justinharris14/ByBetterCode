@@ -44,31 +44,30 @@ export default function FloatingTabBar({
   const router = useRouter();
   const pathname = usePathname();
   const theme = useTheme();
-  const animatedValue = useSharedValue(0);
+  
+  // Use separate shared values for better worklet performance
+  const translateX = useSharedValue(0);
+
+  // Calculate tab width once
+  const tabWidth = React.useMemo(() => {
+    return (containerWidth - 16) / tabs.length;
+  }, [containerWidth, tabs.length]);
 
   // Improved active tab detection with better path matching
   const activeTabIndex = React.useMemo(() => {
-    // Find the best matching tab based on the current pathname
     let bestMatch = -1;
     let bestMatchScore = 0;
 
     tabs.forEach((tab, index) => {
       let score = 0;
 
-      // Exact route match gets highest score
       if (pathname === tab.route) {
         score = 100;
-      }
-      // Check if pathname starts with tab route (for nested routes)
-      else if (pathname.startsWith(tab.route)) {
+      } else if (pathname.startsWith(tab.route)) {
         score = 80;
-      }
-      // Check if pathname contains the tab name
-      else if (pathname.includes(tab.name)) {
+      } else if (pathname.includes(tab.name)) {
         score = 60;
-      }
-      // Check for partial matches in the route
-      else if (tab.route.includes('/(tabs)/') && pathname.includes(tab.route.split('/(tabs)/')[1])) {
+      } else if (tab.route.includes('/(tabs)/') && pathname.includes(tab.route.split('/(tabs)/')[1])) {
         score = 40;
       }
 
@@ -78,37 +77,30 @@ export default function FloatingTabBar({
       }
     });
 
-    // Default to first tab if no match found
     return bestMatch >= 0 ? bestMatch : 0;
   }, [pathname, tabs]);
 
+  // Update translateX when active tab changes
   React.useEffect(() => {
-    if (activeTabIndex >= 0) {
-      animatedValue.value = withSpring(activeTabIndex, {
-        damping: 20,
-        stiffness: 120,
-        mass: 1,
-      });
-    }
-  }, [activeTabIndex, animatedValue]);
+    const newTranslateX = activeTabIndex * tabWidth;
+    translateX.value = withSpring(newTranslateX, {
+      damping: 20,
+      stiffness: 120,
+      mass: 1,
+    });
+  }, [activeTabIndex, tabWidth, translateX]);
 
   const handleTabPress = React.useCallback((route: string) => {
     router.push(route);
   }, [router]);
 
-  // Calculate tab width once
-  const tabWidth = React.useMemo(() => {
-    return (containerWidth - 16) / tabs.length;
-  }, [containerWidth, tabs.length]);
-
-  // Simplified animated style - removed interpolate to reduce worklet complexity
+  // Simplified animated style with minimal worklet complexity
   const indicatorStyle = useAnimatedStyle(() => {
-    const translateX = animatedValue.value * tabWidth;
-    
+    'worklet';
     return {
-      transform: [{ translateX }],
+      transform: [{ translateX: translateX.value }],
     };
-  });
+  }, []);
 
   // Dynamic styles based on theme
   const dynamicStyles = React.useMemo(() => ({

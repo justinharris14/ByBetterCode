@@ -117,6 +117,7 @@ export default function ParentPaymentsScreen() {
     }
 
     try {
+      console.log('Opening receipt URL:', payment.receipt_url);
       await WebBrowser.openBrowserAsync(payment.receipt_url);
     } catch (error) {
       console.error('Error opening receipt:', error);
@@ -131,21 +132,29 @@ export default function ParentPaymentsScreen() {
     }
 
     try {
-      // For web, just open the receipt URL
+      console.log('Downloading receipt from:', payment.receipt_url);
+
+      // For web, just open the receipt URL in a new tab
       if (Platform.OS === 'web') {
         window.open(payment.receipt_url, '_blank');
+        Alert.alert('Success', 'Receipt opened in a new tab!');
         return;
       }
 
-      // For mobile, download the file using the new API
-      const filename = `receipt_${payment.payment_id}.pdf`;
+      // For mobile, download the file using the new expo-file-system v19 API
+      const timestamp = new Date().getTime();
+      const filename = `receipt_${payment.payment_id}_${timestamp}.pdf`;
 
       Alert.alert('Downloading', 'Downloading receipt...');
 
+      // Download file to the document directory
       const downloadedFile = await File.downloadFileAsync(
         payment.receipt_url,
-        Paths.document
+        Paths.document,
+        filename
       );
+
+      console.log('Receipt downloaded to:', downloadedFile.uri);
 
       Alert.alert(
         'Success',
@@ -154,7 +163,10 @@ export default function ParentPaymentsScreen() {
           {
             text: 'Open',
             onPress: () => {
-              Linking.openURL(downloadedFile.uri);
+              Linking.openURL(downloadedFile.uri).catch((err) => {
+                console.error('Error opening downloaded file:', err);
+                Alert.alert('Error', 'Unable to open the downloaded file.');
+              });
             },
           },
           { text: 'OK' },

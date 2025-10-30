@@ -17,7 +17,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  interpolate,
 } from 'react-native-reanimated';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -91,7 +90,7 @@ export default function FloatingTabBar({
         mass: 1,
       });
     }
-  }, [activeTabIndex]);
+  }, [activeTabIndex, animatedValue]);
 
   const handleTabPress = React.useCallback((route: string) => {
     router.push(route);
@@ -102,18 +101,14 @@ export default function FloatingTabBar({
     return (containerWidth - 16) / tabs.length;
   }, [containerWidth, tabs.length]);
 
+  // Simplified animated style - removed interpolate to reduce worklet complexity
   const indicatorStyle = useAnimatedStyle(() => {
-    'worklet';
-    const translateX = interpolate(
-      animatedValue.value,
-      [0, tabs.length - 1],
-      [0, tabWidth * (tabs.length - 1)]
-    );
+    const translateX = animatedValue.value * tabWidth;
     
     return {
       transform: [{ translateX }],
     };
-  }, [tabWidth, tabs.length]);
+  });
 
   // Dynamic styles based on theme
   const dynamicStyles = React.useMemo(() => ({

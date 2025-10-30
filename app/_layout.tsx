@@ -1,8 +1,8 @@
 
 import "react-native-reanimated";
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useFonts } from "expo-font";
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { SystemBars } from "react-native-edge-to-edge";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -17,7 +17,10 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/contexts/AuthContext";
 
-SplashScreen.preventAutoHideAsync();
+// Prevent the splash screen from auto-hiding
+SplashScreen.preventAutoHideAsync().catch((error) => {
+  console.warn('SplashScreen.preventAutoHideAsync error:', error);
+});
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -26,19 +29,56 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const networkState = useNetworkState();
-  const [loaded] = useFonts({
+  const [appIsReady, setAppIsReady] = useState(false);
+  
+  // Load fonts with error handling
+  const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+  // Prepare app and hide splash screen
+  const onLayoutRootView = useCallback(async () => {
+    if (appIsReady) {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (error) {
+        console.warn('Error hiding splash screen:', error);
+      }
     }
-  }, [loaded]);
+  }, [appIsReady]);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    async function prepare() {
+      try {
+        console.log('App: Preparing app...');
+        console.log('Fonts loaded:', fontsLoaded, 'Font error:', fontError);
+        
+        // If fonts loaded or there's an error, continue anyway
+        if (fontsLoaded || fontError) {
+          if (fontError) {
+            console.warn('Font loading error, continuing with system fonts:', fontError);
+          }
+          
+          // Small delay to ensure everything is ready
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          console.log('App: Ready to show');
+          setAppIsReady(true);
+        }
+      } catch (e) {
+        console.error('Error during app preparation:', e);
+        // Continue anyway
+        setAppIsReady(true);
+      }
+    }
+
+    prepare();
+  }, [fontsLoaded, fontError]);
+
+  // Network status monitoring
+  useEffect(() => {
     if (
-      !networkState.isConnected &&
+      networkState.isConnected === false &&
       networkState.isInternetReachable === false
     ) {
       Alert.alert(
@@ -48,7 +88,8 @@ export default function RootLayout() {
     }
   }, [networkState.isConnected, networkState.isInternetReachable]);
 
-  if (!loaded) {
+  // Don't render until app is ready
+  if (!appIsReady) {
     return null;
   }
 
@@ -84,14 +125,17 @@ export default function RootLayout() {
         value={colorScheme === "dark" ? CustomDarkTheme : CustomDefaultTheme}
       >
         <AuthProvider>
-          <GestureHandlerRootView>
+          <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="login" />
+              <Stack.Screen name="forgot-password" />
+              <Stack.Screen name="reset-password" />
+              <Stack.Screen name="setup" />
               <Stack.Screen name="(admin)" />
               <Stack.Screen name="(parent)" />
             </Stack>
-            <SystemBars style={"auto"} />
+            <SystemBars style="auto" />
           </GestureHandlerRootView>
         </AuthProvider>
       </ThemeProvider>

@@ -4,9 +4,12 @@
   "main": "index.ts",
   "scripts": {
     "dev": "EXPO_NO_TELEMETRY=1 expo start --tunnel",
+    "start": "EXPO_NO_TELEMETRY=1 expo start --clear",
     "android": "EXPO_NO_TELEMETRY=1 expo start --android",
     "ios": "EXPO_NO_TELEMETRY=1 expo start --ios",
     "web": "EXPO_NO_TELEMETRY=1 expo start --web",
+    "clear": "expo start --clear",
+    "reset": "watchman watch-del-all && rm -rf node_modules/.cache && rm -rf $TMPDIR/metro-* && rm -rf $TMPDIR/haste-*",
     "build:web": "expo export -p web && npx workbox generateSW workbox-config.js",
     "build:android": "expo prebuild -p android",
     "lint": "eslint ."
@@ -47,6 +50,7 @@
     "expo-symbols": "^1.0.6",
     "expo-system-ui": "^6.0.7",
     "expo-web-browser": "^15.0.6",
+    "metro-minify-terser": "^0.83.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.4",

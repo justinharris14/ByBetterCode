@@ -1,5 +1,8 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { colors, commonStyles } from '@/styles/commonStyles';
 import {
   View,
   Text,
@@ -11,12 +14,9 @@ import {
   Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import { supabase } from '@/lib/supabase';
-import { IconSymbol } from '@/components/IconSymbol';
-import { useAuth } from '@/contexts/AuthContext';
 import { AbsenceNotification, Payment, AnnouncementNotification } from '@/types/database.types';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { IconSymbol } from '@/components/IconSymbol';
 
 interface ParentStats {
   childrenCount: number;
@@ -49,7 +49,9 @@ interface AnnouncementNotificationWithDetails extends AnnouncementNotification {
 
 export default function ParentDashboard() {
   const router = useRouter();
-  const { user } = useAuth();
+  const subscriptionRef = useRef<any>(null);
+  const { user, signOut } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<ParentStats>({
     childrenCount: 0,
     upcomingEvents: 0,
@@ -60,79 +62,117 @@ export default function ParentDashboard() {
   });
   const [absenceNotifications, setAbsenceNotifications] = useState<AbsenceNotification[]>([]);
   const [eventNotifications, setEventNotifications] = useState<EventNotification[]>([]);
-  const [announcementNotifications, setAnnouncementNotifications] = useState<AnnouncementNotificationWithDetails[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const absenceChannelRef = useRef<any>(null);
-  const eventChannelRef = useRef<any>(null);
-  const announcementChannelRef = useRef<any>(null);
+  const [announcementNotifications, setAnnouncementNotifications] = useState<
+    AnnouncementNotificationWithDetails[]
+  >([]);
 
   const loadStats = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found, skipping stats load');
+      return;
+    }
 
     try {
+      console.log('Loading parent stats for user:', user.user_id);
+
       // Get children count
-      const { count: childrenCount } = await supabase
+      const { data: children, error: childrenError } = await supabase
         .from('children')
-        .select('*', { count: 'exact', head: true })
+        .select('child_id')
         .eq('parent_id', user.user_id);
 
+      if (childrenError) {
+        console.error('Error loading children:', childrenError);
+      }
+
       // Get upcoming events count
-      const { count: eventsCount } = await supabase
+      const { data: events, error: eventsError } = await supabase
         .from('events')
-        .select('*', { count: 'exact', head: true })
+        .select('event_id')
         .gte('event_datetime', new Date().toISOString());
 
-      // Get unread absence notifications count
-      const { count: absenceNotifCount } = await supabase
+      if (eventsError) {
+        console.error('Error loading events:', eventsError);
+      }
+
+      // Get unread notifications count
+      const { data: absenceNots, error: absenceError } = await supabase
         .from('absence_notifications')
-        .select('*', { count: 'exact', head: true })
+        .select('notification_id')
         .eq('parent_id', user.user_id)
         .eq('is_read', false);
 
-      // Get unread event notifications count
-      const { count: eventNotifCount } = await supabase
+      const { data: eventNots, error: eventError } = await supabase
         .from('event_notifications')
-        .select('*', { count: 'exact', head: true })
+        .select('notification_id')
         .eq('parent_id', user.user_id)
         .eq('is_read', false);
 
-      // Get unread announcement notifications count
-      const { count: announcementNotifCount } = await supabase
+      const { data: announcementNots, error: announcementError } = await supabase
         .from('announcement_notifications')
-        .select('*', { count: 'exact', head: true })
+        .select('notification_id')
         .eq('parent_id', user.user_id)
         .eq('is_read', false);
 
-      // Get pending payments count
-      const { count: pendingCount } = await supabase
+      if (absenceError) console.error('Error loading absence notifications:', absenceError);
+      if (eventError) console.error('Error loading event notifications:', eventError);
+      if (announcementError)
+        console.error('Error loading announcement notifications:', announcementError);
+
+      const unreadCount =
+        (absenceNots?.length || 0) +
+        (eventNots?.length || 0) +
+        (announcementNots?.length || 0);
+
+      // Get pending payments
+      const { data: pendingPayments, error: pendingError } = await supabase
         .from('payments')
-        .select('*', { count: 'exact', head: true })
+        .select('payment_id')
         .eq('parent_id', user.user_id)
         .eq('status', 'pending');
 
-      // Get overdue payments count
-      const { count: overdueCount } = await supabase
+      if (pendingError) {
+        console.error('Error loading pending payments:', pendingError);
+      }
+
+      // Get overdue payments
+      const { data: overduePayments, error: overdueError } = await supabase
         .from('payments')
-        .select('*', { count: 'exact', head: true })
+        .select('payment_id')
         .eq('parent_id', user.user_id)
         .eq('status', 'overdue');
 
-      // Get consent forms count
-      const { count: consentsCount } = await supabase
-        .from('media_consent')
-        .select('*', { count: 'exact', head: true })
-        .eq('parent_id', user.user_id);
+      if (overdueError) {
+        console.error('Error loading overdue payments:', overdueError);
+      }
 
-      const pendingConsents = (childrenCount || 0) - (consentsCount || 0);
+      // Get pending consents
+      const childIds = children?.map((c) => c.child_id) || [];
+      let pendingConsentsCount = 0;
+
+      if (childIds.length > 0) {
+        const { data: consents, error: consentsError } = await supabase
+          .from('media_consent')
+          .select('consent_id')
+          .in('child_id', childIds);
+
+        if (consentsError) {
+          console.error('Error loading consents:', consentsError);
+        } else {
+          pendingConsentsCount = childIds.length - (consents?.length || 0);
+        }
+      }
 
       setStats({
-        childrenCount: childrenCount || 0,
-        upcomingEvents: eventsCount || 0,
-        unreadNotifications: (absenceNotifCount || 0) + (eventNotifCount || 0) + (announcementNotifCount || 0),
-        pendingPayments: pendingCount || 0,
-        overduePayments: overdueCount || 0,
-        pendingConsents: pendingConsents > 0 ? pendingConsents : 0,
+        childrenCount: children?.length || 0,
+        upcomingEvents: events?.length || 0,
+        unreadNotifications: unreadCount,
+        pendingPayments: pendingPayments?.length || 0,
+        overduePayments: overduePayments?.length || 0,
+        pendingConsents: pendingConsentsCount,
       });
+
+      console.log('Stats loaded successfully');
     } catch (error) {
       console.error('Error loading stats:', error);
     }
@@ -142,17 +182,14 @@ export default function ParentDashboard() {
     if (!user) return;
 
     try {
+      console.log('Loading notifications for user:', user.user_id);
+
       // Load absence notifications
       const { data: absenceData, error: absenceError } = await supabase
         .from('absence_notifications')
-        .select(`
-          *,
-          children:child_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .eq('parent_id', user.user_id)
+        .eq('is_read', false)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -165,15 +202,18 @@ export default function ParentDashboard() {
       // Load event notifications
       const { data: eventData, error: eventError } = await supabase
         .from('event_notifications')
-        .select(`
+        .select(
+          `
           *,
-          events:event_id (
+          events (
             title,
             description,
             event_datetime
           )
-        `)
+        `
+        )
         .eq('parent_id', user.user_id)
+        .eq('is_read', false)
         .order('sent_at', { ascending: false })
         .limit(5);
 
@@ -186,15 +226,18 @@ export default function ParentDashboard() {
       // Load announcement notifications
       const { data: announcementData, error: announcementError } = await supabase
         .from('announcement_notifications')
-        .select(`
+        .select(
+          `
           *,
-          announcements:announcement_id (
+          announcements (
             title,
             message,
             created_at
           )
-        `)
+        `
+        )
         .eq('parent_id', user.user_id)
+        .eq('is_read', false)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -203,149 +246,114 @@ export default function ParentDashboard() {
       } else {
         setAnnouncementNotifications(announcementData || []);
       }
+
+      console.log('Notifications loaded successfully');
     } catch (error) {
-      console.error('Error in loadNotifications:', error);
+      console.error('Error loading notifications:', error);
     }
   }, [user]);
 
   const setupRealtimeSubscription = useCallback(() => {
     if (!user) return;
 
-    console.log('Setting up realtime subscription for parent:', user.user_id);
+    console.log('Setting up realtime subscription for user:', user.user_id);
 
-    // Check if already subscribed to prevent multiple subscriptions
-    if (absenceChannelRef.current?.state === 'subscribed') {
-      console.log('Already subscribed to absence notifications');
-      return;
-    }
-
-    // Subscribe to absence notifications
-    const absenceChannel = supabase
-      .channel('absence_notifications_changes')
+    // Subscribe to changes in notifications
+    const channel = supabase
+      .channel('parent-notifications')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'absence_notifications',
           filter: `parent_id=eq.${user.user_id}`,
         },
-        (payload) => {
-          console.log('New absence notification received:', payload);
+        () => {
+          console.log('Absence notification changed, reloading...');
           loadNotifications();
           loadStats();
         }
       )
-      .subscribe((status) => {
-        console.log('Absence channel status:', status);
-      });
-
-    absenceChannelRef.current = absenceChannel;
-
-    // Subscribe to event notifications
-    const eventChannel = supabase
-      .channel('event_notifications_changes')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'event_notifications',
           filter: `parent_id=eq.${user.user_id}`,
         },
-        (payload) => {
-          console.log('New event notification received:', payload);
+        () => {
+          console.log('Event notification changed, reloading...');
           loadNotifications();
           loadStats();
         }
       )
-      .subscribe((status) => {
-        console.log('Event channel status:', status);
-      });
-
-    eventChannelRef.current = eventChannel;
-
-    // Subscribe to announcement notifications
-    const announcementChannel = supabase
-      .channel('announcement_notifications_changes')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'announcement_notifications',
           filter: `parent_id=eq.${user.user_id}`,
         },
-        (payload) => {
-          console.log('New announcement notification received:', payload);
+        () => {
+          console.log('Announcement notification changed, reloading...');
           loadNotifications();
           loadStats();
         }
       )
-      .subscribe((status) => {
-        console.log('Announcement channel status:', status);
-      });
+      .subscribe();
 
-    announcementChannelRef.current = announcementChannel;
+    subscriptionRef.current = channel;
+
+    return () => {
+      console.log('Cleaning up realtime subscription');
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+      }
+    };
   }, [user, loadNotifications, loadStats]);
 
   useEffect(() => {
     if (user) {
       loadStats();
       loadNotifications();
-      setupRealtimeSubscription();
+      const cleanup = setupRealtimeSubscription();
+      return cleanup;
     }
-
-    return () => {
-      // Proper cleanup using supabase.removeChannel
-      if (absenceChannelRef.current) {
-        console.log('Cleaning up absence channel');
-        supabase.removeChannel(absenceChannelRef.current);
-        absenceChannelRef.current = null;
-      }
-      if (eventChannelRef.current) {
-        console.log('Cleaning up event channel');
-        supabase.removeChannel(eventChannelRef.current);
-        eventChannelRef.current = null;
-      }
-      if (announcementChannelRef.current) {
-        console.log('Cleaning up announcement channel');
-        supabase.removeChannel(announcementChannelRef.current);
-        announcementChannelRef.current = null;
-      }
-    };
   }, [user, loadStats, loadNotifications, setupRealtimeSubscription]);
 
-  const markNotificationAsRead = async (notificationId: string, type: 'absence' | 'event' | 'announcement') => {
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([loadStats(), loadNotifications()]);
+    setRefreshing(false);
+  }, [loadStats, loadNotifications]);
+
+  const markNotificationAsRead = async (
+    notificationId: string,
+    type: 'absence' | 'event' | 'announcement'
+  ) => {
     try {
       let table = '';
-      if (type === 'absence') {
-        table = 'absence_notifications';
-      } else if (type === 'event') {
-        table = 'event_notifications';
-      } else if (type === 'announcement') {
-        table = 'announcement_notifications';
-      }
+      if (type === 'absence') table = 'absence_notifications';
+      else if (type === 'event') table = 'event_notifications';
+      else if (type === 'announcement') table = 'announcement_notifications';
 
       const { error } = await supabase
         .from(table)
         .update({ is_read: true })
         .eq('notification_id', notificationId);
 
-      if (error) throw error;
-
-      loadNotifications();
-      loadStats();
+      if (error) {
+        console.error('Error marking notification as read:', error);
+      } else {
+        loadNotifications();
+        loadStats();
+      }
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadStats();
-    await loadNotifications();
-    setRefreshing(false);
   };
 
   const handleSignOut = async () => {
@@ -355,7 +363,7 @@ export default function ParentDashboard() {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-          await supabase.auth.signOut();
+          await signOut();
           router.replace('/login');
         },
       },
@@ -363,36 +371,50 @@ export default function ParentDashboard() {
   };
 
   const handleTuitionPayment = async () => {
-    const tuitionUrl = 'https://buy.stripe.com/test_8x24gsf6R10p3NB7HG7g400';
+    if (!user) return;
 
     try {
-      console.log('Opening Tuition Fee payment page...');
-      const result = await WebBrowser.openBrowserAsync(tuitionUrl);
-      console.log('Browser result:', result);
-    } catch (error) {
-      console.error('Error opening payment page:', error);
-      Alert.alert(
-        'Error',
-        'Unable to open payment page. Please try again later.',
-        [{ text: 'OK' }]
-      );
+      const { data, error } = await supabase.functions.invoke('create-payment-session', {
+        body: {
+          parent_id: user.user_id,
+          amount: 150000,
+          payment_type: 'tuition',
+          description: 'Monthly Tuition Fee',
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        await WebBrowser.openBrowserAsync(data.url);
+      }
+    } catch (error: any) {
+      console.error('Error creating payment session:', error);
+      Alert.alert('Error', 'Failed to initiate payment: ' + error.message);
     }
   };
 
   const handleWeeklyMealPayment = async () => {
-    const weeklyMealUrl = 'https://buy.stripe.com/test_bJe00ccYJdNb2Jx5zy7g401';
+    if (!user) return;
 
     try {
-      console.log('Opening Weekly Meal payment page...');
-      const result = await WebBrowser.openBrowserAsync(weeklyMealUrl);
-      console.log('Browser result:', result);
-    } catch (error) {
-      console.error('Error opening payment page:', error);
-      Alert.alert(
-        'Error',
-        'Unable to open payment page. Please try again later.',
-        [{ text: 'OK' }]
-      );
+      const { data, error } = await supabase.functions.invoke('create-payment-session', {
+        body: {
+          parent_id: user.user_id,
+          amount: 8000,
+          payment_type: 'weekly_meal',
+          description: 'Weekly Meal Plan',
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        await WebBrowser.openBrowserAsync(data.url);
+      }
+    } catch (error: any) {
+      console.error('Error creating payment session:', error);
+      Alert.alert('Error', 'Failed to initiate payment: ' + error.message);
     }
   };
 
@@ -405,308 +427,233 @@ export default function ParentDashboard() {
     });
   };
 
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Please sign in to continue</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={commonStyles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.name}>
-              {user?.first_name} {user?.last_name}
+    <ScrollView
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Welcome back,</Text>
+          <Text style={styles.userName}>
+            {user.first_name} {user.last_name}
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <IconSymbol name="rectangle.portrait.and.arrow.right" size={24} color={colors.error} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Stats Grid */}
+      <View style={styles.statsGrid}>
+        <View style={[styles.statCard, { backgroundColor: colors.primary + '15' }]}>
+          <IconSymbol name="person.2.fill" size={32} color={colors.primary} />
+          <Text style={styles.statValue}>{stats.childrenCount}</Text>
+          <Text style={styles.statLabel}>Children</Text>
+        </View>
+
+        <View style={[styles.statCard, { backgroundColor: colors.secondary + '15' }]}>
+          <IconSymbol name="calendar" size={32} color={colors.secondary} />
+          <Text style={styles.statValue}>{stats.upcomingEvents}</Text>
+          <Text style={styles.statLabel}>Events</Text>
+        </View>
+
+        <View style={[styles.statCard, { backgroundColor: '#FF9800' + '15' }]}>
+          <IconSymbol name="bell.fill" size={32} color="#FF9800" />
+          <Text style={styles.statValue}>{stats.unreadNotifications}</Text>
+          <Text style={styles.statLabel}>Notifications</Text>
+        </View>
+
+        <View style={[styles.statCard, { backgroundColor: colors.error + '15' }]}>
+          <IconSymbol name="dollarsign.circle.fill" size={32} color={colors.error} />
+          <Text style={styles.statValue}>{stats.pendingPayments + stats.overduePayments}</Text>
+          <Text style={styles.statLabel}>Payments Due</Text>
+        </View>
+      </View>
+
+      {/* Quick Actions */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.quickActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/(parent)/children')}
+          >
+            <IconSymbol name="person.2.fill" size={24} color={colors.primary} />
+            <Text style={styles.actionText}>My Children</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/(parent)/attendance')}
+          >
+            <IconSymbol name="checkmark.circle.fill" size={24} color={colors.success} />
+            <Text style={styles.actionText}>Attendance</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/(parent)/payments')}
+          >
+            <IconSymbol name="dollarsign.circle.fill" size={24} color={colors.secondary} />
+            <Text style={styles.actionText}>Payments</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/(parent)/media')}
+          >
+            <IconSymbol name="photo.fill" size={24} color="#9C27B0" />
+            <Text style={styles.actionText}>Gallery</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Notifications */}
+      {(absenceNotifications.length > 0 ||
+        eventNotifications.length > 0 ||
+        announcementNotifications.length > 0) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Notifications</Text>
+
+          {absenceNotifications.map((notification) => (
+            <TouchableOpacity
+              key={notification.notification_id}
+              style={styles.notificationCard}
+              onPress={() =>
+                markNotificationAsRead(notification.notification_id, 'absence')
+              }
+            >
+              <View style={styles.notificationIcon}>
+                <IconSymbol name="exclamationmark.triangle.fill" size={24} color={colors.error} />
+              </View>
+              <View style={styles.notificationContent}>
+                <Text style={styles.notificationTitle}>Absence Alert</Text>
+                <Text style={styles.notificationMessage}>{notification.message}</Text>
+                <Text style={styles.notificationDate}>{formatDate(notification.date)}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+
+          {eventNotifications.map((notification) => (
+            <TouchableOpacity
+              key={notification.notification_id}
+              style={styles.notificationCard}
+              onPress={() => markNotificationAsRead(notification.notification_id, 'event')}
+            >
+              <View style={styles.notificationIcon}>
+                <IconSymbol name="calendar" size={24} color={colors.secondary} />
+              </View>
+              <View style={styles.notificationContent}>
+                <Text style={styles.notificationTitle}>{notification.events.title}</Text>
+                <Text style={styles.notificationMessage}>
+                  {notification.events.description}
+                </Text>
+                <Text style={styles.notificationDate}>
+                  {formatDate(notification.events.event_datetime)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+
+          {announcementNotifications.map((notification) => (
+            <TouchableOpacity
+              key={notification.notification_id}
+              style={styles.notificationCard}
+              onPress={() =>
+                markNotificationAsRead(notification.notification_id, 'announcement')
+              }
+            >
+              <View style={styles.notificationIcon}>
+                <IconSymbol name="megaphone.fill" size={24} color={colors.primary} />
+              </View>
+              <View style={styles.notificationContent}>
+                <Text style={styles.notificationTitle}>
+                  {notification.announcements?.title}
+                </Text>
+                <Text style={styles.notificationMessage} numberOfLines={2}>
+                  {notification.announcements?.message}
+                </Text>
+                <Text style={styles.notificationDate}>
+                  {notification.announcements?.created_at &&
+                    formatDate(notification.announcements.created_at)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Pending Consents Alert */}
+      {stats.pendingConsents > 0 && (
+        <TouchableOpacity
+          style={styles.consentAlert}
+          onPress={() => router.push('/(parent)/consent')}
+        >
+          <IconSymbol name="exclamationmark.triangle.fill" size={24} color="#FF9800" />
+          <View style={styles.consentAlertContent}>
+            <Text style={styles.consentAlertTitle}>Media Consent Required</Text>
+            <Text style={styles.consentAlertMessage}>
+              You have {stats.pendingConsents} pending media consent form(s). Tap to complete.
             </Text>
           </View>
-          <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
-            <IconSymbol name="exit.to.app" size={24} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <IconSymbol name="person.2.fill" size={32} color={colors.primary} />
-            <Text style={styles.statValue}>{stats.childrenCount}</Text>
-            <Text style={styles.statLabel}>Children</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <IconSymbol name="calendar" size={32} color={colors.secondary} />
-            <Text style={styles.statValue}>{stats.upcomingEvents}</Text>
-            <Text style={styles.statLabel}>Events</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <IconSymbol name="bell.fill" size={32} color={colors.accent} />
-            <Text style={styles.statValue}>{stats.unreadNotifications}</Text>
-            <Text style={styles.statLabel}>Unread</Text>
-          </View>
-        </View>
-
-        {/* Consent Alert */}
-        {stats.pendingConsents > 0 && (
-          <View style={styles.section}>
-            <TouchableOpacity
-              style={styles.consentAlert}
-              onPress={() => router.push('/(parent)/media')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.consentAlertContent}>
-                <IconSymbol name="exclamationmark.triangle.fill" size={24} color="#FF9800" />
-                <View style={styles.consentAlertText}>
-                  <Text style={styles.consentAlertTitle}>Media Consent Required</Text>
-                  <Text style={styles.consentAlertSubtitle}>
-                    {stats.pendingConsents} {stats.pendingConsents === 1 ? 'child needs' : 'children need'} consent form{stats.pendingConsents === 1 ? '' : 's'}
-                  </Text>
-                </View>
-              </View>
-              <IconSymbol name="chevron.right" size={20} color="#FF9800" />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-          </View>
-
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/(parent)/media')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: colors.accent }]}>
-                <IconSymbol name="photo.on.rectangle" size={28} color={colors.white} />
-              </View>
-              <Text style={styles.quickActionTitle}>Gallery</Text>
-              <Text style={styles.quickActionSubtitle}>Photos & Videos</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/(parent)/attendance')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: colors.success }]}>
-                <IconSymbol name="checkmark.circle.fill" size={28} color={colors.white} />
-              </View>
-              <Text style={styles.quickActionTitle}>Attendance</Text>
-              <Text style={styles.quickActionSubtitle}>View History</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Payments Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>💳 Payments</Text>
-            <TouchableOpacity onPress={() => router.push('/(parent)/payments')}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-
-          {stats.overduePayments > 0 && (
-            <View style={styles.alertCard}>
-              <IconSymbol name="exclamationmark.triangle.fill" size={24} color="#F44336" />
-              <View style={styles.alertContent}>
-                <Text style={styles.alertTitle}>Overdue Payments</Text>
-                <Text style={styles.alertMessage}>
-                  You have {stats.overduePayments} overdue payment{stats.overduePayments !== 1 ? 's' : ''}. Please pay as soon as possible.
-                </Text>
-              </View>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={styles.paymentCard}
-            onPress={handleTuitionPayment}
-            activeOpacity={0.7}
-          >
-            <View style={styles.paymentIconContainer}>
-              <IconSymbol name="graduationcap.fill" size={32} color={colors.white} />
-            </View>
-            <View style={styles.paymentContent}>
-              <Text style={styles.paymentTitle}>Tuition Fee</Text>
-              <Text style={styles.paymentDescription}>
-                Pay monthly tuition fees
-              </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.paymentCard, styles.weeklyMealPaymentCard]}
-            onPress={handleWeeklyMealPayment}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.paymentIconContainer, styles.weeklyMealIconContainer]}>
-              <IconSymbol name="fork.knife" size={32} color={colors.white} />
-            </View>
-            <View style={styles.paymentContent}>
-              <Text style={styles.paymentTitle}>Weekly Meals</Text>
-              <Text style={styles.paymentDescription}>
-                Pay for weekly meal plan
-              </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Announcement Notifications */}
-        {announcementNotifications.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>📢 Announcements</Text>
-              <TouchableOpacity onPress={() => router.push('/(parent)/announcements')}>
-                <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
-            </View>
-            {announcementNotifications.map((notification) => (
-              <TouchableOpacity
-                key={notification.notification_id}
-                style={[
-                  styles.notificationCard,
-                  !notification.is_read && styles.unreadNotification,
-                ]}
-                onPress={() => {
-                  markNotificationAsRead(notification.notification_id, 'announcement');
-                  router.push('/(parent)/announcements');
-                }}
-              >
-                <View style={styles.notificationHeader}>
-                  <Text style={styles.notificationTitle}>
-                    {notification.announcements?.title || 'Announcement'}
-                  </Text>
-                  {!notification.is_read && <View style={styles.unreadBadge} />}
-                </View>
-                <Text style={styles.notificationMessage} numberOfLines={2}>
-                  {notification.announcements?.message || 'No message'}
-                </Text>
-                <Text style={styles.notificationDate}>
-                  📅 {formatDate(notification.announcements?.created_at || notification.created_at)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* Event Notifications */}
-        {eventNotifications.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📅 Event Notifications</Text>
-            {eventNotifications.map((notification) => (
-              <TouchableOpacity
-                key={notification.notification_id}
-                style={[
-                  styles.notificationCard,
-                  !notification.is_read && styles.unreadNotification,
-                ]}
-                onPress={() => {
-                  markNotificationAsRead(notification.notification_id, 'event');
-                  router.push('/(parent)/events');
-                }}
-              >
-                <View style={styles.notificationHeader}>
-                  <Text style={styles.notificationTitle}>
-                    {notification.events?.title || 'Event'}
-                  </Text>
-                  {!notification.is_read && <View style={styles.unreadBadge} />}
-                </View>
-                <Text style={styles.notificationMessage}>
-                  {notification.events?.description || 'No description'}
-                </Text>
-                <Text style={styles.notificationDate}>
-                  📆 {formatDate(notification.events?.event_datetime || notification.sent_at)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* Absence Notifications */}
-        {absenceNotifications.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⚠️ Absence Notifications</Text>
-            {absenceNotifications.map((notification) => (
-              <TouchableOpacity
-                key={notification.notification_id}
-                style={[
-                  styles.notificationCard,
-                  !notification.is_read && styles.unreadNotification,
-                ]}
-                onPress={() => markNotificationAsRead(notification.notification_id, 'absence')}
-              >
-                <View style={styles.notificationHeader}>
-                  <Text style={styles.notificationTitle}>Absence Alert</Text>
-                  {!notification.is_read && <View style={styles.unreadBadge} />}
-                </View>
-                <Text style={styles.notificationMessage}>{notification.message}</Text>
-                <Text style={styles.notificationDate}>📅 {formatDate(notification.date)}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {absenceNotifications.length === 0 && eventNotifications.length === 0 && announcementNotifications.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🔔</Text>
-            <Text style={styles.emptyText}>No notifications</Text>
-            <Text style={styles.emptySubtext}>You&apos;re all caught up!</Text>
-          </View>
-        )}
-
-        {/* Add bottom padding to prevent content from being hidden by tab bar */}
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </View>
+          <IconSymbol name="chevron.right" size={20} color="#FF9800" />
+        </TouchableOpacity>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 60,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   greeting: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.textSecondary,
   },
-  name: {
-    fontSize: 28,
+  userName: {
+    fontSize: 24,
     fontWeight: '700',
     color: colors.text,
+    marginTop: 4,
   },
   signOutButton: {
     padding: 8,
   },
-  statsContainer: {
+  statsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 20,
+    flexWrap: 'wrap',
+    padding: 16,
     gap: 12,
   },
   statCard: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: 16,
+    minWidth: '45%',
     padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: colors.text,
     marginTop: 8,
@@ -717,94 +664,44 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   section: {
-    padding: 20,
+    padding: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  quickActionsGrid: {
+  quickActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  quickActionCard: {
+  actionButton: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: 16,
+    minWidth: '45%',
+    backgroundColor: colors.white,
     padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  quickActionTitle: {
-    fontSize: 16,
+  actionText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
-  },
-  quickActionSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    marginTop: 8,
     textAlign: 'center',
   },
-  paymentCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  weeklyMealPaymentCard: {
-    marginBottom: 0,
-  },
-  paymentIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  weeklyMealIconContainer: {
-    backgroundColor: colors.secondary,
-  },
-  paymentContent: {
-    flex: 1,
-  },
-  paymentTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  paymentDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
   notificationCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
+    flexDirection: 'row',
+    backgroundColor: colors.white,
     padding: 16,
+    borderRadius: 12,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -812,119 +709,56 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  unreadNotification: {
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
+  notificationIcon: {
+    marginRight: 12,
   },
-  notificationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  notificationContent: {
+    flex: 1,
   },
   notificationTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    flex: 1,
-  },
-  unreadBadge: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.primary,
+    marginBottom: 4,
   },
   notificationMessage: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginBottom: 8,
-    lineHeight: 20,
+    marginBottom: 4,
   },
   notificationDate: {
     fontSize: 12,
     color: colors.textSecondary,
   },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-    marginTop: 40,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  viewAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  alertCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFEBEE',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    gap: 12,
-  },
-  alertContent: {
-    flex: 1,
-  },
-  alertTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#F44336',
-    marginBottom: 4,
-  },
-  alertMessage: {
-    fontSize: 14,
-    color: '#D32F2F',
-    lineHeight: 20,
-  },
   consentAlert: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#FF9800' + '15',
     padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
     borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
+    borderWidth: 1,
+    borderColor: '#FF9800',
   },
   consentAlertContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
     flex: 1,
-  },
-  consentAlertText: {
     marginLeft: 12,
-    flex: 1,
   },
   consentAlertTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#E65100',
-    marginBottom: 2,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
   },
-  consentAlertSubtitle: {
+  consentAlertMessage: {
     fontSize: 14,
-    color: '#F57C00',
+    color: colors.textSecondary,
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.error,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });

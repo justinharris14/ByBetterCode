@@ -7,11 +7,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardStats {
   totalChildren: number;
@@ -28,6 +30,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     loadStats();
@@ -75,7 +78,17 @@ export default function AdminDashboard() {
   };
 
   const handleSignOut = () => {
-    router.replace('/login');
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/login');
+        },
+      },
+    ]);
   };
 
   if (loading) {
@@ -96,10 +109,12 @@ export default function AdminDashboard() {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Admin Dashboard</Text>
-            <Text style={styles.subtitle}>CrècheConnect Management</Text>
+            <Text style={styles.subtitle}>
+              Welcome, {user?.first_name} {user?.last_name}
+            </Text>
           </View>
           <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
-            <IconSymbol name="arrow.right.square" size={24} color={colors.accent} />
+            <IconSymbol name="rectangle.portrait.and.arrow.right" size={24} color={colors.error} />
           </TouchableOpacity>
         </View>
 

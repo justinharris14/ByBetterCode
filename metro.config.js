@@ -12,14 +12,14 @@ config.cacheStores = [
   }),
 ];
 
-// Increase timeouts
+// Increase timeouts significantly
 config.server = {
   ...config.server,
   enhanceMiddleware: (middleware) => {
     return (req, res, next) => {
-      // Set longer timeout (10 minutes)
-      req.setTimeout(600000);
-      res.setTimeout(600000);
+      // Set longer timeout (20 minutes)
+      req.setTimeout(1200000);
+      res.setTimeout(1200000);
       return middleware(req, res, next);
     };
   },
@@ -33,6 +33,8 @@ config.resolver = {
   blockList: [
     /node_modules\/.*\/node_modules\/react-native\/.*/,
   ],
+  // Disable symlinks to avoid circular dependencies
+  unstable_enableSymlinks: false,
 };
 
 // Optimize transformer for faster builds
@@ -61,9 +63,14 @@ config.transformer = {
       inlineRequires: true,
     },
   }),
+  // Increase worker count for parallel processing
+  maxWorkers: 4,
 };
 
 // Optimize watcher
 config.watchFolders = [__dirname];
+
+// Reset cache settings for worklets
+config.resetCache = false;
 
 module.exports = config;

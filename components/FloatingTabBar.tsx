@@ -91,29 +91,32 @@ export default function FloatingTabBar({
         mass: 1,
       });
     }
-  }, [activeTabIndex, animatedValue]);
+  }, [activeTabIndex]);
 
-  const handleTabPress = (route: string) => {
+  const handleTabPress = React.useCallback((route: string) => {
     router.push(route);
-  };
+  }, [router]);
+
+  // Calculate tab width once
+  const tabWidth = React.useMemo(() => {
+    return (containerWidth - 16) / tabs.length;
+  }, [containerWidth, tabs.length]);
 
   const indicatorStyle = useAnimatedStyle(() => {
-    const tabWidth = (containerWidth - 16) / tabs.length; // Account for container padding (8px on each side)
+    'worklet';
+    const translateX = interpolate(
+      animatedValue.value,
+      [0, tabs.length - 1],
+      [0, tabWidth * (tabs.length - 1)]
+    );
+    
     return {
-      transform: [
-        {
-          translateX: interpolate(
-            animatedValue.value,
-            [0, tabs.length - 1],
-            [0, tabWidth * (tabs.length - 1)]
-          ),
-        },
-      ],
+      transform: [{ translateX }],
     };
-  });
+  }, [tabWidth, tabs.length]);
 
   // Dynamic styles based on theme
-  const dynamicStyles = {
+  const dynamicStyles = React.useMemo(() => ({
     blurContainer: {
       ...styles.blurContainer,
       ...Platform.select({
@@ -148,11 +151,11 @@ export default function FloatingTabBar({
     indicator: {
       ...styles.indicator,
       backgroundColor: theme.dark
-        ? 'rgba(255, 255, 255, 0.08)' // Subtle white overlay in dark mode
-        : 'rgba(0, 0, 0, 0.04)', // Subtle black overlay in light mode
-      width: `${(100 / tabs.length) - 3}%`, // Dynamic width based on number of tabs
+        ? 'rgba(255, 255, 255, 0.08)'
+        : 'rgba(0, 0, 0, 0.04)',
+      width: tabWidth - 8,
     },
-  };
+  }), [theme.dark, tabWidth]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
@@ -172,6 +175,8 @@ export default function FloatingTabBar({
           <View style={styles.tabsContainer}>
             {tabs.map((tab, index) => {
               const isActive = activeTabIndex === index;
+              const activeColor = theme.colors.primary;
+              const inactiveColor = theme.dark ? '#98989D' : '#8E8E93';
 
               return (
                 <TouchableOpacity
@@ -184,13 +189,13 @@ export default function FloatingTabBar({
                     <IconSymbol
                       name={tab.icon}
                       size={28}
-                      color={isActive ? theme.colors.primary : (theme.dark ? '#98989D' : '#8E8E93')}
+                      color={isActive ? activeColor : inactiveColor}
                     />
                     <Text
                       style={[
                         styles.tabLabel,
-                        { color: theme.dark ? '#98989D' : '#8E8E93' },
-                        isActive && { color: theme.colors.primary, fontWeight: '600' },
+                        { color: inactiveColor },
+                        isActive && { color: activeColor, fontWeight: '600' },
                       ]}
                     >
                       {tab.label}
@@ -213,20 +218,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    alignItems: 'center', // Center the content
+    alignItems: 'center',
   },
   container: {
     marginHorizontal: 20,
     alignSelf: 'center',
-    // width and marginBottom handled dynamically via props
   },
   blurContainer: {
     overflow: 'hidden',
-    // borderRadius and other styling applied dynamically
   },
   background: {
     ...StyleSheet.absoluteFillObject,
-    // Dynamic styling applied in component
   },
   indicator: {
     position: 'absolute',
@@ -234,8 +236,6 @@ const styles = StyleSheet.create({
     left: 8,
     bottom: 8,
     borderRadius: 20,
-    width: `${(100 / 2) - 3}%`, // Default for 2 tabs, will be overridden by dynamic styles
-    // Dynamic styling applied in component
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -258,6 +258,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     marginTop: 2,
-    // Dynamic styling applied in component
   },
 });

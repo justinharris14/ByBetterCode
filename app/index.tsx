@@ -1,6 +1,6 @@
 
 import { Redirect } from 'expo-router';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -11,7 +11,10 @@ export default function Index() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.logo}>🏫</Text>
+        <Text style={styles.title}>CrècheConnect</Text>
+        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -19,9 +22,15 @@ export default function Index() {
   // If user is authenticated, redirect based on role
   if (user) {
     console.log('Index: User authenticated, role:', user.role);
-    if (user.role === 'admin') {
+    
+    // Check user role from metadata or user object
+    const userRole = user.role;
+    
+    if (userRole === 'admin') {
+      console.log('Index: Redirecting to admin dashboard');
       return <Redirect href="/(admin)/dashboard" />;
-    } else if (user.role === 'parent') {
+    } else if (userRole === 'parent') {
+      console.log('Index: Redirecting to parent dashboard');
       return <Redirect href="/(parent)/dashboard" />;
     }
   }
@@ -37,5 +46,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.background,
+  },
+  logo: {
+    fontSize: 80,
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 32,
+  },
+  loader: {
+    marginTop: 16,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.textSecondary,
   },
 });

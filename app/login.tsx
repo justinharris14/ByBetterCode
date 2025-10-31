@@ -34,10 +34,14 @@ export default function LoginScreen() {
     const result = await signIn(email, password);
     
     if (result.success) {
-      // Navigation will be handled by the index.tsx based on user role
       console.log('Sign in successful, redirecting...');
+      // Navigation will be handled by the index.tsx based on user role
     } else {
-      Alert.alert('Sign In Failed', result.message || 'Invalid email or password');
+      // Show the error message from the API
+      Alert.alert(
+        'Sign In Failed', 
+        result.message || 'Invalid email or password. Please try again.'
+      );
     }
   };
 

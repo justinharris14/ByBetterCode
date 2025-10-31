@@ -1,14 +1,20 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Session } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '@/types/database.types';
-import { supabase } from '@/lib/supabase';
 import { Alert } from 'react-native';
 
+const SUPABASE_URL = 'https://bldlekwvgeatnqjwiowq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGxla3d2Z2VhdG5xandpb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1MDEwOTcsImV4cCI6MjA3NzA3NzA5N30.S8YzBbuBaCgzy7Dhox0LlLLsXDgIvQep839mgkWI43g';
+
+// Global auth state
+export let auth_token: string | null = null;
+export let current_user: User | null = null;
+
 interface AuthContextType {
-  session: Session | null;
   user: User | null;
   loading: boolean;
+  authToken: string | null;
   signIn: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, userData: Partial<User>) => Promise<{ success: boolean; message?: string }>;
@@ -17,93 +23,166 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load session and user data on mount
+  // Load auth token and verify on mount
   useEffect(() => {
     console.log('AuthProvider: Initializing...');
-    
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('AuthProvider: Initial session:', session ? 'Found' : 'None');
-      setSession(session);
-      if (session?.user) {
-        loadUserData(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('AuthProvider: Auth state changed:', _event, session ? 'Session exists' : 'No session');
-      setSession(session);
-      if (session?.user) {
-        loadUserData(session.user.id);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    verifyStoredToken();
   }, []);
 
+  // Verify stored token on app startup
+  const verifyStoredToken = async () => {
+    try {
+      console.log('AuthProvider: Checking for stored token...');
+      
+      // Get stored token
+      const storedToken = await AsyncStorage.getItem('auth_token');
+      const storedUser = await AsyncStorage.getItem('current_user');
+      
+      if (!storedToken) {
+        console.log('AuthProvider: No stored token found');
+        setLoading(false);
+        return;
+      }
+
+      console.log('AuthProvider: Found stored token, verifying...');
+      
+      // Verify token with Supabase
+      const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${storedToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const authUser = await response.json();
+        console.log('AuthProvider: Token is valid, loading user data...');
+        
+        // Set global auth_token
+        auth_token = storedToken;
+        setAuthToken(storedToken);
+        
+        // Load user data from database
+        await loadUserData(authUser.id, storedToken);
+      } else {
+        console.log('AuthProvider: Token is invalid or expired');
+        // Clear invalid token
+        await AsyncStorage.removeItem('auth_token');
+        await AsyncStorage.removeItem('current_user');
+        auth_token = null;
+        current_user = null;
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('AuthProvider: Error verifying token:', error);
+      setLoading(false);
+    }
+  };
+
   // Load user data from public.users table
-  const loadUserData = async (authUserId: string) => {
+  const loadUserData = async (authUserId: string, token: string) => {
     try {
       console.log('Loading user data for auth user:', authUserId);
       
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .or(`user_id.eq.${authUserId},auth_user_id.eq.${authUserId}`)
-        .single();
+      // Query the users table
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/users?or=(user_id.eq.${authUserId},auth_user_id.eq.${authUserId})`,
+        {
+          method: 'GET',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      if (error) {
-        console.error('Error loading user data:', error);
+      if (response.ok) {
+        const users = await response.json();
+        if (users && users.length > 0) {
+          const userData = users[0] as User;
+          console.log('User data loaded:', userData.email, 'Role:', userData.role);
+          
+          // Set global current_user
+          current_user = userData;
+          setUser(userData);
+          
+          // Store user data
+          await AsyncStorage.setItem('current_user', JSON.stringify(userData));
+        } else {
+          console.error('No user found in database for auth user:', authUserId);
+          setUser(null);
+          current_user = null;
+        }
+      } else {
+        console.error('Error loading user data:', await response.text());
         setUser(null);
-      } else if (data) {
-        console.log('User data loaded:', data.email, 'Role:', data.role);
-        setUser(data as User);
+        current_user = null;
       }
     } catch (error) {
       console.error('Exception loading user data:', error);
       setUser(null);
+      current_user = null;
     } finally {
       setLoading(false);
     }
   };
 
-  // Sign in with email and password
+  // Sign in with email and password using direct HTTP POST
   const signIn = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
       console.log('Signing in user:', email);
       setLoading(true);
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Make POST request to Supabase Auth API
+      const response = await fetch(
+        `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+          }),
+        }
+      );
 
-      if (error) {
-        console.error('Sign in error:', error.message);
-        return { success: false, message: error.message };
-      }
+      const data = await response.json();
 
-      if (data.session) {
+      if (response.ok && data.access_token) {
         console.log('Sign in successful');
-        setSession(data.session);
-        await loadUserData(data.session.user.id);
+        
+        // Store the access_token in global variable and AsyncStorage
+        auth_token = data.access_token;
+        setAuthToken(data.access_token);
+        await AsyncStorage.setItem('auth_token', data.access_token);
+        
+        // Load user data from database
+        await loadUserData(data.user.id, data.access_token);
+        
         return { success: true };
+      } else {
+        console.error('Sign in failed:', data.error_description || data.msg);
+        return { 
+          success: false, 
+          message: data.error_description || data.msg || 'Invalid email or password. Please try again.' 
+        };
       }
-
-      return { success: false, message: 'No session created' };
     } catch (error: any) {
       console.error('Sign in exception:', error);
-      return { success: false, message: error.message || 'An error occurred during sign in' };
+      return { 
+        success: false, 
+        message: 'Invalid email or password. Please try again.' 
+      };
     } finally {
       setLoading(false);
     }
@@ -115,16 +194,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Signing out user');
       setLoading(true);
       
-      const { error } = await supabase.auth.signOut();
+      // Clear global variables
+      auth_token = null;
+      current_user = null;
       
-      if (error) {
-        console.error('Sign out error:', error);
-        Alert.alert('Error', 'Failed to sign out: ' + error.message);
-      } else {
-        console.log('Sign out successful');
-        setUser(null);
-        setSession(null);
-      }
+      // Clear AsyncStorage
+      await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('current_user');
+      
+      // Clear state
+      setAuthToken(null);
+      setUser(null);
+      
+      console.log('Sign out successful');
     } catch (error: any) {
       console.error('Sign out exception:', error);
       Alert.alert('Error', 'An error occurred during sign out');
@@ -133,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign up with email and password
+  // Sign up with email and password (keeping for compatibility)
   const signUp = async (
     email: string, 
     password: string, 
@@ -143,46 +225,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Signing up user:', email, 'Role:', userData.role);
       setLoading(true);
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: 'https://natively.dev/email-confirmed',
-          data: {
-            first_name: userData.first_name || '',
-            last_name: userData.last_name || '',
-            phone: userData.phone || '',
-            role: userData.role || 'parent',
+      // Make POST request to Supabase Auth API for signup
+      const response = await fetch(
+        `${SUPABASE_URL}/auth/v1/signup`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
           },
-        },
-      });
-
-      if (error) {
-        console.error('Sign up error:', error.message);
-        return { success: false, message: error.message };
-      }
-
-      if (data.user) {
-        console.log('Sign up successful. User created:', data.user.id);
-        
-        // Check if email confirmation is required
-        if (data.user.identities && data.user.identities.length === 0) {
-          return { 
-            success: true, 
-            message: 'Please check your email to confirm your account before signing in.' 
-          };
+          body: JSON.stringify({
+            email: email,
+            password: password,
+            data: {
+              first_name: userData.first_name || '',
+              last_name: userData.last_name || '',
+              phone: userData.phone || '',
+              role: userData.role || 'parent',
+            },
+          }),
         }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.user) {
+        console.log('Sign up successful. User created:', data.user.id);
         
         return { 
           success: true, 
           message: 'Account created successfully! Please check your email to verify your account.' 
         };
+      } else {
+        console.error('Sign up failed:', data.error_description || data.msg);
+        return { 
+          success: false, 
+          message: data.error_description || data.msg || 'Failed to create account' 
+        };
       }
-
-      return { success: false, message: 'Failed to create account' };
     } catch (error: any) {
       console.error('Sign up exception:', error);
-      return { success: false, message: error.message || 'An error occurred during sign up' };
+      return { 
+        success: false, 
+        message: error.message || 'An error occurred during sign up' 
+      };
     } finally {
       setLoading(false);
     }
@@ -190,9 +276,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ 
-      session, 
       user, 
       loading, 
+      authToken,
       signIn, 
       signOut, 
       signUp,
@@ -208,4 +294,13 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+// Helper function to get auth headers for database requests
+export function getAuthHeaders(): HeadersInit {
+  return {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': auth_token ? `Bearer ${auth_token}` : `Bearer ${SUPABASE_ANON_KEY}`,
+    'Content-Type': 'application/json',
+  };
 }

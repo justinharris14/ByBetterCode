@@ -1,0 +1,101 @@
+name: CI / Build & Deploy
+
+# Triggers: run CI on PRs, and full pipeline on pushes to main
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+# Limit default token permissions (least privilege)
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  ci:
+    name: CI - lint, test & build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Use Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit tests (with coverage)
+        run: npm test -- --coverage
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build
+
+  publish:
+    name: Publish & (optional) Deploy
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+
+      # -------- Optional: Deploy to Vercel (only if VERCEL_TOKEN is set) --------
+      - name: Deploy to Vercel (production)
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+
+      # -------- Optional: Notify New Relic of deployment (if configured) -------
+      - name: Notify New Relic about deployment
+        if: ${{ secrets.NEW_RELIC_API_KEY != '' && secrets.NEW_RELIC_APP_ID != '' }}
+        env:
+          NEW_RELIC_API_KEY: ${{ secrets.NEW_RELIC_API_KEY }}
+          NEW_RELIC_APP_ID: ${{ secrets.NEW_RELIC_APP_ID }}
+        run: |
+          curl -s -X POST "https://api.newrelic.com/v2/applications/${NEW_RELIC_APP_ID}/deployments.json" \
+            -H "X-Api-Key:${NEW_RELIC_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"deployment\": {\"revision\":\"${GITHUB_SHA}\",\"description\":\"Deploy from GitHub Actions\",\"user\":\"${GITHUB_ACTOR}\"}}"
+
+      - name: Post-deploy smoke tests (basic)
+        run: |
+          # Example smoke test: verify home page returns 200
+          # Edit the URL below to point to your staging/prod site if desired
+          URL="https://your-production-url.example.com"
+          echo "Checking ${URL} (this is a placeholder — change to your site URL)"
+          curl -fSs "$URL" || ( echo "Smoke test failed"; exit 1 )

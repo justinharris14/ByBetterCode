@@ -21,10 +21,11 @@ export default function Index() {
 
   // If user is authenticated, redirect based on role
   if (user) {
+	
     console.log('Index: User authenticated, role:', user.role);
-    
-    // Check user role from metadata or user object
     const userRole = user.role;
+    // Check user role from metadata or user object
+    
     
     if (userRole === 'admin') {
       console.log('Index: Redirecting to admin dashboard');

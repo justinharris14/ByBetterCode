@@ -18,6 +18,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, userData: Partial<User>) => Promise<{ success: boolean; message?: string }>;
+  clearStoredAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +34,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     verifyStoredToken();
   }, []);
 
+  // Clear all stored authentication data
+  const clearStoredAuth = async () => {
+    try {
+      console.log('AuthProvider: Clearing all stored authentication data...');
+      
+      // Clear AsyncStorage
+      await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('current_user');
+      
+      // Clear global variables
+      auth_token = null;
+      current_user = null;
+      
+      // Clear state
+      setAuthToken(null);
+      setUser(null);
+      
+      console.log('AuthProvider: All authentication data cleared');
+    } catch (error) {
+      console.error('AuthProvider: Error clearing stored auth:', error);
+    }
+  };
+
   // Verify stored token on app startup
   const verifyStoredToken = async () => {
     try {
@@ -42,13 +66,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedToken = await AsyncStorage.getItem('auth_token');
       const storedUser = await AsyncStorage.getItem('current_user');
       
+      console.log('AuthProvider: Stored token exists:', !!storedToken);
+      console.log('AuthProvider: Stored user exists:', !!storedUser);
+      
       if (!storedToken) {
-        console.log('AuthProvider: No stored token found');
+        console.log('AuthProvider: No stored token found - user needs to login');
         setLoading(false);
         return;
       }
 
-      console.log('AuthProvider: Found stored token, verifying...');
+      console.log('AuthProvider: Found stored token, verifying with Supabase...');
       
       // Verify token with Supabase
       const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -60,9 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
 
+      console.log('AuthProvider: Token verification response status:', response.status);
+
       if (response.ok) {
         const authUser = await response.json();
-        console.log('AuthProvider: Token is valid, loading user data...');
+        console.log('AuthProvider: Token is valid for user:', authUser.email);
         
         // Set global auth_token
         auth_token = storedToken;
@@ -71,16 +100,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Load user data from database
         await loadUserData(authUser.id, storedToken);
       } else {
-        console.log('AuthProvider: Token is invalid or expired');
+        const errorText = await response.text();
+        console.log('AuthProvider: Token is invalid or expired:', errorText);
+        
         // Clear invalid token
-        await AsyncStorage.removeItem('auth_token');
-        await AsyncStorage.removeItem('current_user');
-        auth_token = null;
-        current_user = null;
+        await clearStoredAuth();
         setLoading(false);
       }
     } catch (error) {
       console.error('AuthProvider: Error verifying token:', error);
+      
+      // Clear potentially corrupted data
+      await clearStoredAuth();
       setLoading(false);
     }
   };
@@ -88,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load user data from public.users table
   const loadUserData = async (authUserId: string, token: string) => {
     try {
-      console.log('Loading user data for auth user:', authUserId);
+      console.log('AuthProvider: Loading user data for auth user:', authUserId);
       
       // Query the users table
       const response = await fetch(
@@ -103,11 +134,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       );
 
+      console.log('AuthProvider: User data query response status:', response.status);
+
       if (response.ok) {
         const users = await response.json();
+        console.log('AuthProvider: Found users:', users.length);
+        
         if (users && users.length > 0) {
           const userData = users[0] as User;
-          console.log('User data loaded:', userData.email, 'Role:', userData.role);
+          console.log('AuthProvider: User data loaded - Email:', userData.email, 'Role:', userData.role);
           
           // Set global current_user
           current_user = userData;
@@ -116,19 +151,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Store user data
           await AsyncStorage.setItem('current_user', JSON.stringify(userData));
         } else {
-          console.error('No user found in database for auth user:', authUserId);
-          setUser(null);
-          current_user = null;
+          console.error('AuthProvider: No user found in database for auth user:', authUserId);
+          
+          // Clear auth since user doesn't exist in database
+          await clearStoredAuth();
         }
       } else {
-        console.error('Error loading user data:', await response.text());
-        setUser(null);
-        current_user = null;
+        const errorText = await response.text();
+        console.error('AuthProvider: Error loading user data:', errorText);
+        
+        // Clear auth on error
+        await clearStoredAuth();
       }
     } catch (error) {
-      console.error('Exception loading user data:', error);
-      setUser(null);
-      current_user = null;
+      console.error('AuthProvider: Exception loading user data:', error);
+      
+      // Clear auth on exception
+      await clearStoredAuth();
     } finally {
       setLoading(false);
     }
@@ -137,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign in with email and password using direct HTTP POST
   const signIn = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      console.log('Signing in user:', email);
+      console.log('AuthProvider: Signing in user:', email);
       setLoading(true);
 
       // Make POST request to Supabase Auth API
@@ -157,9 +196,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
 
       const data = await response.json();
+      console.log('AuthProvider: Sign in response status:', response.status);
 
       if (response.ok && data.access_token) {
-        console.log('Sign in successful');
+        console.log('AuthProvider: Sign in successful');
         
         // Store the access_token in global variable and AsyncStorage
         auth_token = data.access_token;
@@ -171,14 +211,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         return { success: true };
       } else {
-        console.error('Sign in failed:', data.error_description || data.msg);
+        console.error('AuthProvider: Sign in failed:', data.error_description || data.msg);
         return { 
           success: false, 
           message: data.error_description || data.msg || 'Invalid email or password. Please try again.' 
         };
       }
     } catch (error: any) {
-      console.error('Sign in exception:', error);
+      console.error('AuthProvider: Sign in exception:', error);
       return { 
         success: false, 
         message: 'Invalid email or password. Please try again.' 
@@ -191,24 +231,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign out
   const signOut = async () => {
     try {
-      console.log('Signing out user');
+      console.log('AuthProvider: Signing out user');
       setLoading(true);
       
-      // Clear global variables
-      auth_token = null;
-      current_user = null;
+      // Clear all stored authentication data
+      await clearStoredAuth();
       
-      // Clear AsyncStorage
-      await AsyncStorage.removeItem('auth_token');
-      await AsyncStorage.removeItem('current_user');
-      
-      // Clear state
-      setAuthToken(null);
-      setUser(null);
-      
-      console.log('Sign out successful');
+      console.log('AuthProvider: Sign out successful');
     } catch (error: any) {
-      console.error('Sign out exception:', error);
+      console.error('AuthProvider: Sign out exception:', error);
       Alert.alert('Error', 'An error occurred during sign out');
     } finally {
       setLoading(false);
@@ -222,7 +253,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userData: Partial<User>
   ): Promise<{ success: boolean; message?: string }> => {
     try {
-      console.log('Signing up user:', email, 'Role:', userData.role);
+      console.log('AuthProvider: Signing up user:', email, 'Role:', userData.role);
       setLoading(true);
 
       // Make POST request to Supabase Auth API for signup
@@ -250,21 +281,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (response.ok && data.user) {
-        console.log('Sign up successful. User created:', data.user.id);
+        console.log('AuthProvider: Sign up successful. User created:', data.user.id);
         
         return { 
           success: true, 
           message: 'Account created successfully! Please check your email to verify your account.' 
         };
       } else {
-        console.error('Sign up failed:', data.error_description || data.msg);
+        console.error('AuthProvider: Sign up failed:', data.error_description || data.msg);
         return { 
           success: false, 
           message: data.error_description || data.msg || 'Failed to create account' 
         };
       }
     } catch (error: any) {
-      console.error('Sign up exception:', error);
+      console.error('AuthProvider: Sign up exception:', error);
       return { 
         success: false, 
         message: error.message || 'An error occurred during sign up' 
@@ -282,6 +313,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn, 
       signOut, 
       signUp,
+      clearStoredAuth,
     }}>
       {children}
     </AuthContext.Provider>

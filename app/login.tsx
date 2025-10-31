@@ -19,7 +19,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, loading } = useAuth();
+  const { signIn, loading, clearStoredAuth } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,6 +43,24 @@ export default function LoginScreen() {
         result.message || 'Invalid email or password. Please try again.'
       );
     }
+  };
+
+  const handleClearStoredAuth = () => {
+    Alert.alert(
+      'Clear Stored Authentication',
+      'This will clear all stored login data and force you to login again. This is useful if the app is stuck on a screen.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await clearStoredAuth();
+            Alert.alert('Success', 'All stored authentication data has been cleared. Please login again.');
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -121,6 +139,14 @@ export default function LoginScreen() {
               ) : (
                 <Text style={styles.submitButtonText}>Sign In</Text>
               )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.clearAuthButton}
+              onPress={handleClearStoredAuth}
+              disabled={loading}
+            >
+              <Text style={styles.clearAuthText}>🔧 Clear Stored Login Data</Text>
             </TouchableOpacity>
           </View>
 
@@ -245,6 +271,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '600',
+  },
+  clearAuthButton: {
+    marginTop: 16,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+  },
+  clearAuthText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
   footer: {
     marginTop: 24,

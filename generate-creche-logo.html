@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creche Connect Logo Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .canvas-container {
+            margin: 20px 0;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        h2 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Creche Connect Logo Generator</h1>
+    <p>Click the buttons below to download each logo variant.</p>
+
+    <div class="canvas-container">
+        <h2>App Icon (1024x1024)</h2>
+        <canvas id="icon" width="1024" height="1024"></canvas>
+        <button onclick="downloadCanvas('icon', 'icon.png')">Download Icon</button>
+    </div>
+
+    <div class="canvas-container">
+        <h2>Adaptive Icon (1024x1024)</h2>
+        <canvas id="adaptive-icon" width="1024" height="1024"></canvas>
+        <button onclick="downloadCanvas('adaptive-icon', 'adaptive-icon.png')">Download Adaptive Icon</button>
+    </div>
+
+    <div class="canvas-container">
+        <h2>Splash Screen (2048x2048)</h2>
+        <canvas id="splash" width="2048" height="2048"></canvas>
+        <button onclick="downloadCanvas('splash', 'splash.png')">Download Splash</button>
+    </div>
+
+    <div class="canvas-container">
+        <h2>Favicon (240x240)</h2>
+        <canvas id="favicon" width="240" height="240"></canvas>
+        <button onclick="downloadCanvas('favicon', 'favicon.png')">Download Favicon</button>
+    </div>
+
+    <div class="canvas-container">
+        <h2>Logo 192x192</h2>
+        <canvas id="logo192" width="192" height="192"></canvas>
+        <button onclick="downloadCanvas('logo192', 'logo192x192.png')">Download Logo 192</button>
+    </div>
+
+    <div class="canvas-container">
+        <h2>Logo 512x512</h2>
+        <canvas id="logo512" width="512" height="512"></canvas>
+        <button onclick="downloadCanvas('logo512', 'logo512x512.png')">Download Logo 512</button>
+    </div>
+
+    <script>
+        // Creche Connect Logo Design
+        function drawLogo(ctx, size, withBackground = true, bgColor = '#000000') {
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Background
+            if (withBackground) {
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, size, size);
+            }
+            
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = size * 0.3;
+            
+            // Draw house/creche building shape
+            ctx.save();
+            
+            // House base (rectangle)
+            const houseWidth = radius * 1.6;
+            const houseHeight = radius * 1.3;
+            const houseX = centerX - houseWidth / 2;
+            const houseY = centerY - houseHeight / 2 + radius * 0.2;
+            
+            // Roof (triangle)
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - radius * 0.8); // Top point
+            ctx.lineTo(centerX - houseWidth / 2 - radius * 0.1, houseY); // Left point
+            ctx.lineTo(centerX + houseWidth / 2 + radius * 0.1, houseY); // Right point
+            ctx.closePath();
+            ctx.fillStyle = '#FF6B9D'; // Warm pink
+            ctx.fill();
+            
+            // House body
+            ctx.fillStyle = '#FFB347'; // Warm orange
+            ctx.fillRect(houseX, houseY, houseWidth, houseHeight);
+            
+            // Door
+            const doorWidth = houseWidth * 0.35;
+            const doorHeight = houseHeight * 0.5;
+            const doorX = centerX - doorWidth / 2;
+            const doorY = houseY + houseHeight - doorHeight;
+            ctx.fillStyle = '#4ECDC4'; // Teal
+            ctx.fillRect(doorX, doorY, doorWidth, doorHeight);
+            
+            // Windows
+            const windowSize = houseWidth * 0.2;
+            const windowY = houseY + houseHeight * 0.25;
+            
+            // Left window
+            ctx.fillStyle = '#95E1D3'; // Light teal
+            ctx.fillRect(houseX + houseWidth * 0.15, windowY, windowSize, windowSize);
+            
+            // Right window
+            ctx.fillRect(houseX + houseWidth * 0.65, windowY, windowSize, windowSize);
+            
+            // Add heart symbol (representing care)
+            ctx.save();
+            ctx.translate(centerX, centerY - radius * 1.3);
+            const heartSize = radius * 0.4;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, heartSize * 0.3);
+            ctx.bezierCurveTo(-heartSize * 0.5, -heartSize * 0.3, -heartSize, heartSize * 0.1, 0, heartSize);
+            ctx.bezierCurveTo(heartSize, heartSize * 0.1, heartSize * 0.5, -heartSize * 0.3, 0, heartSize * 0.3);
+            ctx.fillStyle = '#FF6B9D';
+            ctx.fill();
+            
+            ctx.restore();
+            ctx.restore();
+        }
+        
+        // Generate all logos
+        function generateAllLogos() {
+            // Icon (1024x1024)
+            const iconCanvas = document.getElementById('icon');
+            const iconCtx = iconCanvas.getContext('2d');
+            drawLogo(iconCtx, 1024, true, '#000000');
+            
+            // Adaptive Icon (1024x1024)
+            const adaptiveCanvas = document.getElementById('adaptive-icon');
+            const adaptiveCtx = adaptiveCanvas.getContext('2d');
+            drawLogo(adaptiveCtx, 1024, false);
+            
+            // Splash (2048x2048)
+            const splashCanvas = document.getElementById('splash');
+            const splashCtx = splashCanvas.getContext('2d');
+            drawLogo(splashCtx, 2048, true, '#000000');
+            
+            // Favicon (240x240)
+            const faviconCanvas = document.getElementById('favicon');
+            const faviconCtx = faviconCanvas.getContext('2d');
+            drawLogo(faviconCtx, 240, true, '#FFFFFF');
+            
+            // Logo 192x192
+            const logo192Canvas = document.getElementById('logo192');
+            const logo192Ctx = logo192Canvas.getContext('2d');
+            drawLogo(logo192Ctx, 192, true, '#FFFFFF');
+            
+            // Logo 512x512
+            const logo512Canvas = document.getElementById('logo512');
+            const logo512Ctx = logo512Canvas.getContext('2d');
+            drawLogo(logo512Ctx, 512, true, '#FFFFFF');
+        }
+        
+        function downloadCanvas(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Generate logos on page load
+        window.onload = generateAllLogos;
+    </script>
+</body>
+</html>

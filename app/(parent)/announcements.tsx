@@ -119,7 +119,7 @@ export default function ParentAnnouncementsScreen() {
               <View key={announcement.announcement_id} style={styles.announcementCard}>
                 <View style={styles.announcementHeader}>
                   <View style={styles.announcementIcon}>
-                    <IconSymbol name="notifications" size={24} color={colors.primary} />
+                    <IconSymbol name={"notifications" as any} size={24} color={colors.primary} />
                   </View>
                   <Text style={styles.announcementDate}>
                     {formatDate(announcement.created_at)}

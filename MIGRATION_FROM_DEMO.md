@@ -85,7 +85,7 @@ const signUp = async (email: string, password: string, userData: Partial<User>) 
     email,
     password,
     options: {
-      emailRedirectTo: 'https://natively.dev/email-confirmed',
+      emailRedirectTo: 'https://crecheconnect.app/email-confirmed',
       data: userData,
     },
   });

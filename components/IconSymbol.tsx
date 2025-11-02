@@ -1,20 +1,16 @@
-// This file is a fallback for using MaterialIcons on Android and web.
+// Cross-platform Icon Component
+// Uses native SF Symbols on iOS (expo-symbols)
+// and MaterialIcons on Android / Web.
 
 import React from "react";
-import { SymbolWeight } from "expo-symbols";
-import {
-  OpaqueColorValue,
-  StyleProp,
-  TextStyle,
-  ViewStyle,
-} from "react-native";
+import { Platform, OpaqueColorValue, StyleProp, TextStyle, ViewStyle } from "react-native";
+import { SymbolView, SymbolWeight } from "expo-symbols";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
-// Add your SFSymbol to MaterialIcons mappings here.
+// ------------------------------------------------------------
+// 🗺️ SF Symbols → Material Icons Mapping
+// ------------------------------------------------------------
 const MAPPING = {
-  // See MaterialIcons here: https://icons.expo.fyi
-  // See SF Symbols in the SF Symbols app on Mac.
-
   // Navigation & Home
   "house.fill": "home",
   "house": "home-outlined",
@@ -153,6 +149,7 @@ const MAPPING = {
   // Search & Discovery
   "magnifyingglass": "search",
   "line.3.horizontal.decrease": "filter-list",
+  "line.3.horizontal.decrease.circle": "filter-list",
   "arrow.up.arrow.down": "sort",
 
   // Visibility & Display
@@ -161,37 +158,63 @@ const MAPPING = {
   "lightbulb.fill": "lightbulb",
   "moon.fill": "dark-mode",
   "sun.max.fill": "light-mode",
-} as Partial<
-  Record<
-    import("expo-symbols").SymbolViewProps["name"],
-    React.ComponentProps<typeof MaterialIcons>["name"]
-  >
->;
 
-export type IconSymbolName = keyof typeof MAPPING;
+  // Family & Children
+  "figure.2.and.child.holdinghands": "family-restroom",
+  "person.badge.key.fill": "admin-panel-settings",
 
-/**
- * An icon component that uses native SFSymbols on iOS, and MaterialIcons on Android and web. This ensures a consistent look across platforms, and optimal resource usage.
- *
- * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
- */
-export function IconSymbol({
-  name,
-  size = 24,
-  color,
-  style,
-}: {
+  // Medical & Food
+  "cross.case": "medical-services",
+  "fork.knife": "restaurant",
+
+  // Communication
+  "megaphone.fill": "campaign",
+  "rectangle.portrait.and.arrow.right": "logout",
+} as const;
+
+// ------------------------------------------------------------
+// 🧱 Types
+// ------------------------------------------------------------
+export type IconSymbolName = keyof typeof MAPPING | string;
+
+interface IconSymbolProps {
   name: IconSymbolName;
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
-}) {
+}
+
+// ------------------------------------------------------------
+// ⚙️ Component
+// ------------------------------------------------------------
+export function IconSymbol({
+  name,
+  size = 24,
+  color,
+  style,
+  weight = "regular",
+}: IconSymbolProps) {
+  const mappedName = (MAPPING as Record<string, string>)[name] ?? name;
+
+  if (Platform.OS === "ios") {
+    // ✅ New Expo SymbolView uses `style` for sizing, not `pointSize`
+    return (
+      <SymbolView
+        name={name as any}
+        tintColor={color}
+        weight={weight}
+        style={[{ width: size, height: size }, style]}
+      />
+    );
+  }
+
+  // ✅ Android / Web fallback
   return (
     <MaterialIcons
       color={color}
       size={size}
-      name={MAPPING[name]}
+      name={mappedName as React.ComponentProps<typeof MaterialIcons>["name"]}
       style={style as StyleProp<TextStyle>}
     />
   );

@@ -257,7 +257,7 @@ export default function ParentMediaScreen() {
                         {child.first_name} {child.last_name}
                       </Text>
                       <View style={styles.consentStatusRow}>
-                        <IconSymbol name={consentStatus.icon} size={16} color={consentStatus.color} />
+                        <IconSymbol name={consentStatus.icon as any} size={16} color={consentStatus.color} />
                         <Text style={[styles.consentStatusText, { color: consentStatus.color }]}>
                           {consentStatus.status}
                         </Text>

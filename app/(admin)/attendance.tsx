@@ -37,7 +37,7 @@ export default function AttendanceScreen() {
   const [showUndo, setShowUndo] = useState(false);
   
   const undoOpacity = useRef(new Animated.Value(0)).current;
-  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadData = useCallback(async () => {
     try {

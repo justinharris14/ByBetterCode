@@ -1,11 +1,10 @@
-
 import React, { useEffect, useState, useCallback } from "react";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { SystemBars } from "react-native-edge-to-edge";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useColorScheme, Alert } from "react-native";
+import { useColorScheme, Alert, Text, View, ActivityIndicator } from "react-native";
 import { useNetworkState } from "expo-network";
 import {
   DarkTheme,
@@ -14,34 +13,89 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
-// Prevent the splash screen from auto-hiding
+// Prevent splash screen from auto-hiding until setup is done
 SplashScreen.preventAutoHideAsync().catch((error) => {
-  console.warn('SplashScreen.preventAutoHideAsync error:', error);
+  console.warn("SplashScreen.preventAutoHideAsync error:", error);
 });
 
 export const unstable_settings = {
   initialRouteName: "index",
 };
 
+// 🔐 Auth-gated Navigation Logic
+function RootNavigation() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (loading) return; // Wait for auth check
+    if (user) {
+      // ✅ Route by role
+      if (user.role === "admin") {
+        router.replace("/(admin)/dashboard");
+      } else if (user.role === "parent") {
+        router.replace("/(parent)/dashboard");
+      } else {
+        router.replace("/login");
+      }
+    } else {
+      router.replace("/login");
+    }
+  }, [user, loading]);
+
+  // Show loader while verifying token or fetching user data
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#fff",
+        }}
+      >
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={{ marginTop: 10, color: "#003049" }}>
+          Checking your session...
+        </Text>
+      </View>
+    );
+  }
+
+  // Once authenticated, render the correct stack
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="forgot-password" />
+      <Stack.Screen name="reset-password" />
+      <Stack.Screen name="setup" />
+      <Stack.Screen name="(admin)" />
+      <Stack.Screen name="(parent)" />
+    </Stack>
+  );
+}
+
+// ✅ Main Root Layout
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const networkState = useNetworkState();
   const [appIsReady, setAppIsReady] = useState(false);
-  
-  // Load fonts with error handling
+
+  // 🧩 Load fonts
   const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  // Prepare app and hide splash screen
+  // 🧠 Prepare app (fonts, splash, etc.)
   const onLayoutRootView = useCallback(async () => {
     if (appIsReady) {
       try {
         await SplashScreen.hideAsync();
       } catch (error) {
-        console.warn('Error hiding splash screen:', error);
+        console.warn("Error hiding splash screen:", error);
       }
     }
   }, [appIsReady]);
@@ -49,32 +103,23 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
-        console.log('App: Preparing app...');
-        console.log('Fonts loaded:', fontsLoaded, 'Font error:', fontError);
-        
-        // If fonts loaded or there's an error, continue anyway
+        console.log("App: Preparing...");
         if (fontsLoaded || fontError) {
           if (fontError) {
-            console.warn('Font loading error, continuing with system fonts:', fontError);
+            console.warn("Font loading error, continuing:", fontError);
           }
-          
-          // Small delay to ensure everything is ready
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          console.log('App: Ready to show');
+          await new Promise((resolve) => setTimeout(resolve, 150));
           setAppIsReady(true);
         }
       } catch (e) {
-        console.error('Error during app preparation:', e);
-        // Continue anyway
+        console.error("App prep error:", e);
         setAppIsReady(true);
       }
     }
-
     prepare();
   }, [fontsLoaded, fontError]);
 
-  // Network status monitoring
+  // 🌐 Network status alerts
   useEffect(() => {
     if (
       networkState.isConnected === false &&
@@ -82,16 +127,40 @@ export default function RootLayout() {
     ) {
       Alert.alert(
         "🔌 You are offline",
-        "You can keep using the app! Your changes will be saved locally and synced when you are back online."
+        "You can keep using the app! Your data will sync automatically once you're online."
       );
     }
   }, [networkState.isConnected, networkState.isInternetReachable]);
 
-  // Don't render until app is ready
-  if (!appIsReady) {
-    return null;
+  // 🧱 Fallback for font load errors
+  if (fontError) {
+    console.error("Font loading failed:", fontError);
+    return (
+      <GestureHandlerRootView
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#fff",
+        }}
+      >
+        <Text
+          style={{
+            color: "#003049",
+            fontSize: 16,
+            textAlign: "center",
+            paddingHorizontal: 24,
+          }}
+        >
+          Something went wrong while starting CrècheConnect. Please restart the app.
+        </Text>
+      </GestureHandlerRootView>
+    );
   }
 
+  if (!appIsReady) return null;
+
+  // 🎨 Themes
   const CustomDefaultTheme: Theme = {
     ...DefaultTheme,
     dark: false,
@@ -117,6 +186,7 @@ export default function RootLayout() {
     },
   };
 
+  // ✅ Combined Root Layout
   return (
     <>
       <StatusBar style="auto" animated />
@@ -125,15 +195,7 @@ export default function RootLayout() {
       >
         <AuthProvider>
           <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="login" />
-              <Stack.Screen name="forgot-password" />
-              <Stack.Screen name="reset-password" />
-              <Stack.Screen name="setup" />
-              <Stack.Screen name="(admin)" />
-              <Stack.Screen name="(parent)" />
-            </Stack>
+            <RootNavigation />
             <SystemBars style="auto" />
           </GestureHandlerRootView>
         </AuthProvider>

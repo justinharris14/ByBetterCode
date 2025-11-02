@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -11,6 +10,7 @@ import {
   Modal,
   RefreshControl,
 } from 'react-native';
+import { useRouter } from "expo-router";
 import { supabase } from '@/lib/supabase';
 import { Event } from '@/types/database.types';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
@@ -30,16 +30,18 @@ Notifications.setNotificationHandler({
 
 export default function EventsScreen() {
   const { user } = useAuth();
+  const router = useRouter(); // ✅ Added router instance
+
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  
+
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDateRange, setFilterDateRange] = useState<'all' | 'upcoming' | 'past' | 'today'>('all');
   const [showFilters, setShowFilters] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -98,7 +100,6 @@ export default function EventsScreen() {
     try {
       console.log('Sending notifications to all parents for event:', event.title);
 
-      // Get all parents
       const { data: parents, error: parentsError } = await supabase
         .from('users')
         .select('user_id, first_name, last_name')
@@ -115,9 +116,6 @@ export default function EventsScreen() {
         return;
       }
 
-      console.log(`Found ${parents.length} parents to notify`);
-
-      // Create event notifications for all parents
       const notifications = parents.map(parent => ({
         event_id: event.event_id,
         parent_id: parent.user_id,
@@ -133,9 +131,6 @@ export default function EventsScreen() {
         return;
       }
 
-      console.log(`Successfully created ${notifications.length} event notifications`);
-
-      // Schedule local notifications for all parents
       const eventDate = new Date(event.event_datetime);
       const formattedDate = eventDate.toLocaleDateString('en-ZA', {
         weekday: 'long',
@@ -148,60 +143,42 @@ export default function EventsScreen() {
         minute: '2-digit',
       });
 
-      // Schedule immediate notification
+      // Immediate notification
       await Notifications.scheduleNotificationAsync({
         content: {
           title: '📅 New Event: ' + event.title,
           body: `${event.description || 'No description'}\n📆 ${formattedDate} at ${formattedTime}`,
-          data: { 
-            eventId: event.event_id,
-            type: 'event',
-            url: '/(parent)/events',
-          },
+          data: { eventId: event.event_id, type: 'event', url: '/(parent)/events' },
           sound: true,
         },
-        trigger: null, // Send immediately
+        trigger: null,
       });
 
-      // Schedule reminder 1 day before the event
+      // 1-day reminder
       const oneDayBefore = new Date(eventDate.getTime() - 24 * 60 * 60 * 1000);
       if (oneDayBefore > new Date()) {
         await Notifications.scheduleNotificationAsync({
           content: {
             title: '⏰ Event Reminder: ' + event.title,
             body: `Tomorrow at ${formattedTime}`,
-            data: { 
-              eventId: event.event_id,
-              type: 'event_reminder',
-              url: '/(parent)/events',
-            },
+            data: { eventId: event.event_id, type: 'event_reminder', url: '/(parent)/events' },
             sound: true,
           },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DATE,
-            date: oneDayBefore,
-          },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: oneDayBefore },
         });
       }
 
-      // Schedule reminder 1 hour before the event
+      // 1-hour reminder
       const oneHourBefore = new Date(eventDate.getTime() - 60 * 60 * 1000);
       if (oneHourBefore > new Date()) {
         await Notifications.scheduleNotificationAsync({
           content: {
             title: '🔔 Event Starting Soon: ' + event.title,
             body: `Starts in 1 hour`,
-            data: { 
-              eventId: event.event_id,
-              type: 'event_reminder',
-              url: '/(parent)/events',
-            },
+            data: { eventId: event.event_id, type: 'event_reminder', url: '/(parent)/events' },
             sound: true,
           },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DATE,
-            date: oneHourBefore,
-          },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: oneHourBefore },
         });
       }
 
@@ -211,6 +188,7 @@ export default function EventsScreen() {
     }
   };
 
+  // ✅ Updated handleSave function
   const handleSave = async () => {
     if (!formData.title || !formData.event_datetime) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -218,7 +196,6 @@ export default function EventsScreen() {
     }
 
     try {
-      // Validate date format
       const eventDate = new Date(formData.event_datetime);
       if (isNaN(eventDate.getTime())) {
         Alert.alert('Error', 'Invalid date format. Please use YYYY-MM-DD HH:MM');
@@ -236,18 +213,24 @@ export default function EventsScreen() {
 
       if (error) throw error;
 
-      // Send notifications to all parents
       if (data) {
         await sendNotificationsToAllParents(data);
       }
 
       Alert.alert(
-        'Success', 
+        '✅ Success',
         'Event created successfully! All parents have been notified.',
-        [{ text: 'OK' }]
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setModalVisible(false);
+              router.replace('/(admin)/dashboard'); // ✅ redirect after save
+            },
+          },
+        ]
       );
-      setModalVisible(false);
-      loadEvents();
+
     } catch (error) {
       console.error('Error saving event:', error);
       Alert.alert('Error', 'Failed to save event');
@@ -265,18 +248,8 @@ export default function EventsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Delete event notifications first
-              await supabase
-                .from('event_notifications')
-                .delete()
-                .eq('event_id', event.event_id);
-
-              // Delete the event
-              const { error } = await supabase
-                .from('events')
-                .delete()
-                .eq('event_id', event.event_id);
-
+              await supabase.from('event_notifications').delete().eq('event_id', event.event_id);
+              const { error } = await supabase.from('events').delete().eq('event_id', event.event_id);
               if (error) throw error;
               Alert.alert('Success', 'Event deleted successfully');
               loadEvents();
@@ -290,7 +263,6 @@ export default function EventsScreen() {
     );
   };
 
-  // Filter function
   const getFilteredEvents = () => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -298,22 +270,16 @@ export default function EventsScreen() {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     return events.filter((event) => {
-      // Search query filter
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch = searchQuery === '' ||
         event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (event.description && event.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      // Date range filter
       const eventDate = new Date(event.event_datetime);
       let matchesDateRange = true;
 
-      if (filterDateRange === 'upcoming') {
-        matchesDateRange = eventDate >= now;
-      } else if (filterDateRange === 'past') {
-        matchesDateRange = eventDate < now;
-      } else if (filterDateRange === 'today') {
-        matchesDateRange = eventDate >= today && eventDate < tomorrow;
-      }
+      if (filterDateRange === 'upcoming') matchesDateRange = eventDate >= now;
+      else if (filterDateRange === 'past') matchesDateRange = eventDate < now;
+      else if (filterDateRange === 'today') matchesDateRange = eventDate >= today && eventDate < tomorrow;
 
       return matchesSearch && matchesDateRange;
     });
@@ -343,7 +309,7 @@ export default function EventsScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Search Bar */}
+        {/* Search */}
         <View style={styles.searchContainer}>
           <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
           <TextInput
@@ -360,8 +326,8 @@ export default function EventsScreen() {
           )}
         </View>
 
-        {/* Filter Toggle Button */}
-        <TouchableOpacity 
+        {/* Filters */}
+        <TouchableOpacity
           style={[styles.filterToggle, hasActiveFilters && styles.filterToggleActive]}
           onPress={() => setShowFilters(!showFilters)}
         >
@@ -372,40 +338,24 @@ export default function EventsScreen() {
           <IconSymbol name={showFilters ? "chevron.up" : "chevron.down"} size={16} color={hasActiveFilters ? colors.primary : colors.text} />
         </TouchableOpacity>
 
-        {/* Filter Options */}
         {showFilters && (
           <View style={styles.filterContainer}>
-            {/* Date Range Filter */}
             <View style={styles.filterRow}>
               <Text style={styles.filterLabel}>Date Range:</Text>
               <View style={styles.filterChips}>
-                <TouchableOpacity
-                  style={[styles.filterChip, filterDateRange === 'all' && styles.filterChipActive]}
-                  onPress={() => setFilterDateRange('all')}
-                >
-                  <Text style={[styles.filterChipText, filterDateRange === 'all' && styles.filterChipTextActive]}>All</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.filterChip, filterDateRange === 'today' && styles.filterChipActive]}
-                  onPress={() => setFilterDateRange('today')}
-                >
-                  <Text style={[styles.filterChipText, filterDateRange === 'today' && styles.filterChipTextActive]}>Today</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.filterChip, filterDateRange === 'upcoming' && styles.filterChipActive]}
-                  onPress={() => setFilterDateRange('upcoming')}
-                >
-                  <Text style={[styles.filterChipText, filterDateRange === 'upcoming' && styles.filterChipTextActive]}>Upcoming</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.filterChip, filterDateRange === 'past' && styles.filterChipActive]}
-                  onPress={() => setFilterDateRange('past')}
-                >
-                  <Text style={[styles.filterChipText, filterDateRange === 'past' && styles.filterChipTextActive]}>Past</Text>
-                </TouchableOpacity>
+                {['all', 'today', 'upcoming', 'past'].map(range => (
+                  <TouchableOpacity
+                    key={range}
+                    style={[styles.filterChip, filterDateRange === range && styles.filterChipActive]}
+                    onPress={() => setFilterDateRange(range as any)}
+                  >
+                    <Text style={[styles.filterChipText, filterDateRange === range && styles.filterChipTextActive]}>
+                      {range.charAt(0).toUpperCase() + range.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
-
             {hasActiveFilters && (
               <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
                 <Text style={styles.clearFiltersText}>Clear All Filters</Text>
@@ -414,7 +364,7 @@ export default function EventsScreen() {
           </View>
         )}
 
-        {/* Results Count */}
+        {/* Results */}
         <View style={styles.resultsHeader}>
           <Text style={styles.resultsCount}>
             {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'} found
@@ -424,6 +374,7 @@ export default function EventsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Event List */}
         {filteredEvents.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
@@ -434,18 +385,13 @@ export default function EventsScreen() {
           filteredEvents.map((event) => {
             const eventDate = new Date(event.event_datetime);
             const isPast = eventDate < new Date();
-            
             return (
               <View key={event.event_id} style={[commonStyles.cardWhite, isPast && styles.pastEventCard]}>
                 <View style={styles.eventHeader}>
                   <View style={styles.eventInfo}>
                     <Text style={[styles.eventTitle, isPast && styles.pastEventText]}>{event.title}</Text>
-                    <Text style={commonStyles.textSecondary}>
-                      📅 {eventDate.toLocaleString()}
-                    </Text>
-                    {isPast && (
-                      <Text style={styles.pastBadge}>Past Event</Text>
-                    )}
+                    <Text style={commonStyles.textSecondary}>📅 {eventDate.toLocaleString()}</Text>
+                    {isPast && <Text style={styles.pastBadge}>Past Event</Text>}
                     <Text style={styles.eventDescription}>{event.description}</Text>
                   </View>
                   <TouchableOpacity onPress={() => handleDelete(event)} style={styles.deleteButton}>
@@ -458,6 +404,7 @@ export default function EventsScreen() {
         )}
       </ScrollView>
 
+      {/* Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -509,12 +456,8 @@ export default function EventsScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-  },
+  scrollView: { flex: 1 },
+  content: { padding: 20 },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -543,20 +486,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  filterToggleActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.lightBlue,
-  },
-  filterToggleText: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  filterToggleTextActive: {
-    color: colors.primary,
-  },
+  filterToggleActive: { borderColor: colors.primary, backgroundColor: colors.lightBlue },
+  filterToggleText: { flex: 1, marginLeft: 8, fontSize: 16, fontWeight: '600', color: colors.text },
+  filterToggleTextActive: { color: colors.primary },
   filterContainer: {
     backgroundColor: colors.white,
     borderRadius: 12,
@@ -565,19 +497,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  filterRow: {
-    marginBottom: 8,
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  filterChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
+  filterRow: { marginBottom: 8 },
+  filterLabel: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8 },
+  filterChips: { flexDirection: 'row', flexWrap: 'wrap' },
   filterChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -588,131 +510,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  filterChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  filterChipText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  filterChipTextActive: {
-    color: colors.white,
-  },
-  clearFiltersButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 8,
-  },
-  clearFiltersText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.accent,
-  },
-  resultsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  resultsCount: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  addButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  addButtonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  eventHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  eventInfo: {
-    flex: 1,
-  },
-  eventTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  eventDescription: {
-    fontSize: 14,
-    color: colors.text,
-    marginTop: 8,
-  },
-  pastEventCard: {
-    opacity: 0.7,
-  },
-  pastEventText: {
-    color: colors.textSecondary,
-  },
-  pastBadge: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 20,
-    width: '90%',
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 20,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  modalButton: {
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  cancelButtonText: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  saveButtonText: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  filterChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  filterChipText: { fontSize: 14, color: colors.text, fontWeight: '500' },
+  filterChipTextActive: { color: colors.white },
+  clearFiltersButton: { alignItems: 'center', paddingVertical: 12, marginTop: 8 },
+  clearFiltersText: { fontSize: 14, fontWeight: '600', color: colors.accent },
+  resultsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  resultsCount: { fontSize: 14, color: colors.textSecondary, fontWeight: '600' },
+  addButton: { paddingHorizontal: 16, paddingVertical: 10 },
+  addButtonText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  emptyState: { padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 16, color: colors.textSecondary },
+  eventHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  eventInfo: { flex: 1 },
+  eventTitle: { fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: 4 },
+  eventDescription: { fontSize: 14, color: colors.text, marginTop: 8 },
+  pastEventCard: { opacity: 0.7 },
+  pastEventText: { color: colors.textSecondary },
+  pastBadge: { fontSize: 12, color: colors.textSecondary, fontWeight: '600', marginTop: 4 },
+  deleteButton: { padding: 8 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: colors.white, borderRadius: 16, padding: 20, width: '90%' },
+  modalTitle: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 20 },
+  textArea: { height: 100, textAlignVertical: 'top' },
+  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
+  modalButton: { flex: 1, marginHorizontal: 8 },
+  cancelButtonText: { color: colors.text, fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  saveButtonText: { color: colors.text, fontSize: 16, fontWeight: '600', textAlign: 'center' },
 });

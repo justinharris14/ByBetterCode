@@ -41,7 +41,7 @@ export default function ForgotPasswordScreen() {
       console.log('Requesting password reset for:', email);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://natively.dev/reset-password',
+        redirectTo: 'https://crecheconnect.app/reset-password',
       });
 
       if (error) {

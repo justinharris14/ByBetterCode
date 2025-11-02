@@ -73,7 +73,7 @@ export default function FloatingTabBar({
   }, [pathname, tabs]);
 
   const handleTabPress = React.useCallback((route: string) => {
-    router.push(route);
+    router.push(route as any);
   }, [router]);
 
   // Dynamic styles based on theme
@@ -149,7 +149,7 @@ export default function FloatingTabBar({
                 >
                   <View style={styles.tabContent}>
                     <IconSymbol
-                      name={tab.icon}
+                      name={tab.icon as any}
                       size={28}
                       color={isActive ? activeColor : inactiveColor}
                     />

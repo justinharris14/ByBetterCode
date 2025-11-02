@@ -11,6 +11,7 @@ import {
   Modal,
   RefreshControl,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { colors, commonStyles, buttonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -70,26 +71,49 @@ export default function AnnouncementsScreen() {
   };
 
   const handleSave = async () => {
+    console.log('handleSave called with data:', formData);
+    console.log('Current user:', user);
+    
     if (!formData.title || !formData.message) {
+      console.log('Validation failed - missing required fields');
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     if (!user) {
+      console.log('Error: User not found');
       Alert.alert('Error', 'User not found');
       return;
     }
 
+    console.log('Starting to save announcement...');
     try {
-      const { error } = await supabase
-        .from('announcements')
-        .insert([{
+      // Get auth token and use REST API directly
+      const token = await AsyncStorage.getItem('auth_token');
+      console.log('Using token:', token ? 'Token exists' : 'No token');
+      
+      const response = await fetch('https://bldlekwvgeatnqjwiowq.supabase.co/rest/v1/announcements', {
+        method: 'POST',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGxla3d2Z2VhdG5xandpb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1MDEwOTcsImV4cCI6MjA3NzA3NzA5N30.S8YzBbuBaCgzy7Dhox0LlLLsXDgIvQep839mgkWI43g',
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
           title: formData.title,
           message: formData.message,
           created_by_id: user.user_id,
-        }]);
+        }),
+      });
 
-      if (error) throw error;
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        throw new Error(errorData.message || 'Failed to save');
+      }
       Alert.alert('Success', 'Announcement created successfully');
       setModalVisible(false);
       loadAnnouncements();
@@ -332,7 +356,11 @@ export default function AnnouncementsScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[buttonStyles.primary, styles.modalButton]}
-                onPress={handleSave}
+                onPress={() => {
+                  console.log('Post button clicked!');
+                  handleSave();
+                }}
+                activeOpacity={0.7}
               >
                 <Text style={styles.saveButtonText}>Post</Text>
               </TouchableOpacity>

@@ -4,6 +4,9 @@
     "strict": true,
     "baseUrl": ".",
     "jsx": "react-jsx",
+    "esModuleInterop": true,
+     "skipLibCheck": true,
+    "types": ["react", "react-native","expo","expo-router"],
     "paths": {
       "@/*": [
         "./*"

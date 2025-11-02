@@ -203,7 +203,7 @@ export default function AdminConsentScreen() {
                       Parent: {child.parent?.first_name} {child.parent?.last_name}
                     </Text>
                     <View style={styles.statusRow}>
-                      <IconSymbol name={status.icon} size={16} color={status.color} />
+                      <IconSymbol name={status.icon as any} size={16} color={status.color} />
                       <Text style={[styles.statusText, { color: status.color }]}>
                         {status.status}
                       </Text>

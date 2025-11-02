@@ -7,6 +7,7 @@ export const colors = {
   secondary: '#FAD4D8',
   accent: '#FF6B9D',
   background: '#F3F3F3',
+  backgroundSecondary: '#E0E0E0', // ✅ Added property
   card: '#FFFFFF',
   white: '#FFFFFF',
   text: '#003049',
@@ -16,6 +17,8 @@ export const colors = {
   warning: '#FF9800',
   error: '#FF5252',
   info: '#2196F3',
+  lightBlue: '#ADD8E6',
+  lightGray: '#D3D3D3',
 };
 
 export const commonStyles = StyleSheet.create({

@@ -125,7 +125,7 @@ export default function ConsentScreen() {
                       {child.first_name} {child.last_name}
                     </Text>
                     <View style={styles.statusRow}>
-                      <IconSymbol name={consentStatus.icon} size={16} color={consentStatus.color} />
+                      <IconSymbol name={consentStatus.icon as any} size={16} color={consentStatus.color} />
                       <Text style={[styles.statusText, { color: consentStatus.color }]}>
                         {consentStatus.status}
                       </Text>

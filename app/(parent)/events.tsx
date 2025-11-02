@@ -217,7 +217,7 @@ export default function ParentEventsScreen() {
                 <View key={event.event_id} style={styles.eventCard}>
                   <View style={styles.eventHeader}>
                     <View style={styles.eventIcon}>
-                      <IconSymbol name="event" size={28} color={colors.primary} />
+                      <IconSymbol name={"event" as any} size={28} color={colors.primary} />
                     </View>
                     <View style={styles.eventBadge}>
                       <Text style={styles.eventBadgeText}>{daysUntil}</Text>
@@ -232,11 +232,11 @@ export default function ParentEventsScreen() {
 
                   <View style={styles.eventDetails}>
                     <View style={styles.eventDetailRow}>
-                      <IconSymbol name="calendar.today" size={18} color={colors.textSecondary} />
+                      <IconSymbol name={"calendar.today" as any} size={18} color={colors.textSecondary} />
                       <Text style={styles.eventDetailText}>{date}</Text>
                     </View>
                     <View style={styles.eventDetailRow}>
-                      <IconSymbol name="schedule" size={18} color={colors.textSecondary} />
+                      <IconSymbol name={"schedule" as any} size={18} color={colors.textSecondary} />
                       <Text style={styles.eventDetailText}>{time}</Text>
                     </View>
                   </View>

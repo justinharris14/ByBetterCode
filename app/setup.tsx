@@ -87,7 +87,7 @@ export default function SetupScreen() {
                 phone: account.phone,
                 role: account.role,
               },
-              emailRedirectTo: 'https://natively.dev/email-confirmed'
+              emailRedirectTo: 'https://crecheconnect.app/email-confirmed'
             },
           });
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   View,
@@ -13,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors, commonStyles } from '@/styles/commonStyles';
+import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/IconSymbol';
 
@@ -25,19 +24,38 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // ✅ Handles login logic with navigation
   const handleSignIn = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter your email and password');
       return;
     }
 
-    const result = await signIn(email, password);
-    
+    const result = await signIn(email.trim().toLowerCase(), password);
+
     if (result.success) {
-      console.log('Sign in successful, redirecting...');
-      // Navigation will be handled by the index.tsx based on user role
+      console.log('✅ Sign in successful');
+      
+      // 🧠 Fix: result.user can be undefined or null, so handle both safely
+      const user = result.user ?? null;
+
+      if (user && user.role) {
+        console.log(`Redirecting to ${user.role} dashboard...`);
+
+        if (user.role === 'admin') {
+          router.replace('/(admin)/dashboard'); // ✅ Admin dashboard
+        } else if (user.role === 'parent') {
+          router.replace('/(parent)/dashboard'); // ✅ Parent dashboard
+        } else {
+          Alert.alert('Unknown Role', 'Unable to determine user role.');
+          router.replace('/login');
+        }
+      } else {
+        console.log('⚠️ No role found on user object');
+        router.replace('/login');
+      }
+
     } else {
-      // Show the error message from the API
       Alert.alert(
         'Sign In Failed', 
         result.message || 'Invalid email or password. Please try again.'
@@ -48,7 +66,7 @@ export default function LoginScreen() {
   const handleClearStoredAuth = () => {
     Alert.alert(
       'Clear Stored Authentication',
-      'This will clear all stored login data and force you to login again. This is useful if the app is stuck on a screen.',
+      'This will clear all stored login data and force you to login again. Use this if the app is stuck on a screen.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -56,7 +74,7 @@ export default function LoginScreen() {
           style: 'destructive',
           onPress: async () => {
             await clearStoredAuth();
-            Alert.alert('Success', 'All stored authentication data has been cleared. Please login again.');
+            Alert.alert('Success', 'Stored authentication cleared. Please login again.');
           },
         },
       ]
@@ -151,12 +169,8 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              ✅ Secure authentication with Supabase
-            </Text>
-            <Text style={styles.footerNote}>
-              Contact your administrator for account access
-            </Text>
+            <Text style={styles.footerText}>✅ Secure authentication with Supabase</Text>
+            <Text style={styles.footerNote}>Contact your administrator for account access</Text>
           </View>
         </View>
       </ScrollView>
@@ -165,36 +179,13 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logo: {
-    fontSize: 60,
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  scrollContent: { flexGrow: 1 },
+  content: { flex: 1, justifyContent: 'center', padding: 24 },
+  logoContainer: { alignItems: 'center', marginBottom: 40 },
+  logo: { fontSize: 60, marginBottom: 12 },
+  title: { fontSize: 28, fontWeight: '700', color: colors.text, marginBottom: 4 },
+  subtitle: { fontSize: 14, color: colors.textSecondary },
   formContainer: {
     backgroundColor: colors.white,
     borderRadius: 16,
@@ -205,22 +196,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  formTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
+  formTitle: { fontSize: 22, fontWeight: '700', color: colors.text, marginBottom: 24, textAlign: 'center' },
+  inputGroup: { marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8 },
   input: {
     backgroundColor: colors.background,
     borderRadius: 8,
@@ -238,15 +216,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  passwordInput: {
-    flex: 1,
-    padding: 12,
-    fontSize: 16,
-    color: colors.text,
-  },
-  eyeButton: {
-    padding: 12,
-  },
+  passwordInput: { flex: 1, padding: 12, fontSize: 16, color: colors.text },
+  eyeButton: { padding: 12 },
   submitButton: {
     backgroundColor: colors.primary,
     borderRadius: 8,
@@ -254,24 +225,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  forgotPasswordButton: {
-    alignItems: 'flex-end',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '600',
-  },
+  submitButtonDisabled: { opacity: 0.6 },
+  submitButtonText: { fontSize: 16, fontWeight: '700', color: colors.white },
+  forgotPasswordButton: { alignItems: 'flex-end', marginTop: 8, marginBottom: 8 },
+  forgotPasswordText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
   clearAuthButton: {
     marginTop: 16,
     padding: 12,
@@ -281,25 +238,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: colors.background,
   },
-  clearAuthText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  footer: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#4CAF50',
-    textAlign: 'center',
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  footerNote: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
+  clearAuthText: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
+  footer: { marginTop: 24, alignItems: 'center' },
+  footerText: { fontSize: 12, color: '#4CAF50', textAlign: 'center', fontWeight: '600', marginBottom: 8 },
+  footerNote: { fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
 });

@@ -1,0 +1,132 @@
+name: CI / Build & Deploy
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  ci:
+    name: CI - lint, test & build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Use Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit tests (with coverage)
+        run: npm test -- --coverage
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build
+
+  publish:
+    name: Publish & Deploy (Supabase)
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+
+      
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy Supabase Edge Functions
+        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' && secrets.SUPABASE_PROJECT_ID != '' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          echo "Deploying Supabase Edge Functions (if present)..."
+          # deploy functions in ./functions (safe if none)
+          supabase functions deploy --project-ref $SUPABASE_PROJECT_ID || echo "No functions found or deploy error (check logs)"
+
+      - name: Apply Supabase DB migrations (OPTIONAL — use with care)
+        if: ${{ secrets.SUPABASE_DB_URL != '' && secrets.SUPABASE_PROJECT_ID != '' }}
+        env:
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          echo "Applying DB migrations to project $SUPABASE_PROJECT_ID"
+          supabase link --project-ref $SUPABASE_PROJECT_ID || true
+          supabase db push --db-url "$SUPABASE_DB_URL" --project-ref $SUPABASE_PROJECT_ID || ( echo "Migrations failed"; exit 1 )
+
+      - name: Upload static build to Supabase Storage (OPTIONAL)
+        if: ${{ secrets.SUPABASE_STORAGE_BUCKET != '' && secrets.SUPABASE_PROJECT_ID != '' && secrets.SUPABASE_ACCESS_TOKEN != '' }}
+        env:
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          BUCKET: ${{ secrets.SUPABASE_STORAGE_BUCKET }}
+        run: |
+          echo "Uploading build/ to Supabase Storage bucket: $BUCKET"
+          # ensure npm tools present
+          npm ci --no-audit --no-fund
+          # Walk files and upload (simple sync)
+          for f in $(find build -type f); do
+            key=${f#build/}
+            echo "Uploading $f -> $BUCKET/$key"
+            npx supabase storage upload $BUCKET "$key" "$f" --project-ref $SUPABASE_PROJECT_ID || (echo "Upload failed for $f"; exit 1)
+          done
+
+   
+      - name: Notify New Relic about deployment (optional)
+        if: ${{ secrets.NEW_RELIC_API_KEY != '' && secrets.NEW_RELIC_APP_ID != '' }}
+        env:
+          NEW_RELIC_API_KEY: ${{ secrets.NEW_RELIC_API_KEY }}
+          NEW_RELIC_APP_ID: ${{ secrets.NEW_RELIC_APP_ID }}
+        run: |
+          curl -s -X POST "https://api.newrelic.com/v2/applications/${NEW_RELIC_APP_ID}/deployments.json" \
+            -H "X-Api-Key:${NEW_RELIC_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"deployment\": {\"revision\":\"${GITHUB_SHA}\",\"description\":\"Deploy from GitHub Actions\",\"user\":\"${GITHUB_ACTOR}\"}}"
+
+     
+      - name: Post-deploy smoke test (edit URL)
+        env:
+          URL: ${{ secrets.SMOKE_TEST_URL || 'https://your-production-url.example.com' }}
+        run: |
+          echo "Running smoke test against $URL"
+          curl -fSs "$URL" || ( echo "Smoke test failed (200 expected)"; exit 1 )

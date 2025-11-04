@@ -3,7 +3,7 @@
 -- ========================================
 -- Run this to see what's in your database
 
--- Check authenticated users
+-- Check authenticated users (ALL roles)
 SELECT '=== AUTH USERS (can log in) ===' AS section;
 SELECT 
   id AS user_id,
@@ -11,12 +11,13 @@ SELECT
   raw_user_meta_data->>'first_name' AS first_name,
   raw_user_meta_data->>'last_name' AS last_name,
   raw_user_meta_data->>'role' AS role,
-  email_confirmed_at IS NOT NULL AS can_login
+  email_confirmed_at IS NOT NULL AS can_login,
+  created_at
 FROM auth.users
-WHERE raw_user_meta_data->>'role' = 'parent'
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT 20;
 
--- Check profile users
+-- Check profile users (ALL roles)
 SELECT '=== PROFILE USERS (in public.users table) ===' AS section;
 SELECT 
   user_id,
@@ -25,10 +26,11 @@ SELECT
   last_name,
   role,
   phone,
-  is_active
+  is_active,
+  created_at
 FROM public.users
-WHERE role = 'parent'
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT 20;
 
 -- Check children
 SELECT '=== CHILDREN (all) ===' AS section;
@@ -98,55 +100,169 @@ WHERE event_datetime >= NOW()
 ORDER BY event_datetime
 LIMIT 5;
 
--- Check RLS policies on children table
-SELECT '=== RLS POLICIES ON CHILDREN TABLE ===' AS section;
+-- Check announcements
+SELECT '=== RECENT ANNOUNCEMENTS ===' AS section;
 SELECT 
+  announcement_id,
+  title,
+  LEFT(message, 100) AS message_preview,
+  created_at
+FROM announcements
+ORDER BY created_at DESC
+LIMIT 5;
+
+-- Check RLS policies on ALL key tables
+SELECT '=== RLS POLICIES (ALL TABLES) ===' AS section;
+SELECT 
+  tablename,
   policyname,
   cmd,
   CASE 
-    WHEN qual IS NOT NULL THEN 'Has USING'
-    ELSE 'No USING'
-  END AS using_clause
+    WHEN qual IS NOT NULL THEN '✅'
+    ELSE '❌'
+  END AS has_using_clause
 FROM pg_policies
-WHERE schemaname = 'public' 
-  AND tablename = 'children';
+WHERE schemaname = 'public'
+ORDER BY tablename, policyname;
 
--- Summary
+-- Summary and diagnosis
 DO $$
 DECLARE
+  auth_users INTEGER;
   auth_parents INTEGER;
+  auth_admins INTEGER;
+  profile_users INTEGER;
   profile_parents INTEGER;
+  profile_admins INTEGER;
   total_children INTEGER;
   orphan_children INTEGER;
+  total_attendance INTEGER;
+  total_payments INTEGER;
+  total_events INTEGER;
+  total_announcements INTEGER;
+  policy_count INTEGER;
 BEGIN
+  -- Count users
+  SELECT COUNT(*) INTO auth_users FROM auth.users;
   SELECT COUNT(*) INTO auth_parents FROM auth.users WHERE raw_user_meta_data->>'role' = 'parent';
+  SELECT COUNT(*) INTO auth_admins FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin';
+  SELECT COUNT(*) INTO profile_users FROM public.users;
   SELECT COUNT(*) INTO profile_parents FROM public.users WHERE role = 'parent';
+  SELECT COUNT(*) INTO profile_admins FROM public.users WHERE role = 'admin';
+  
+  -- Count data
   SELECT COUNT(*) INTO total_children FROM children;
-  SELECT COUNT(*) INTO orphan_children FROM children WHERE parent_id NOT IN (SELECT user_id FROM public.users WHERE role = 'parent');
+  SELECT COUNT(*) INTO orphan_children FROM children 
+    WHERE parent_id NOT IN (SELECT user_id FROM public.users WHERE role = 'parent');
+  SELECT COUNT(*) INTO total_attendance FROM attendance;
+  SELECT COUNT(*) INTO total_payments FROM payments;
+  SELECT COUNT(*) INTO total_events FROM events WHERE event_datetime >= NOW();
+  SELECT COUNT(*) INTO total_announcements FROM announcements;
+  SELECT COUNT(*) INTO policy_count FROM pg_policies WHERE schemaname = 'public';
   
   RAISE NOTICE '
-  ╔══════════════════════════════════════════════════════════╗
-  ║                  DATABASE STATUS                          ║
-  ╚══════════════════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════════╗
+║                    DATABASE DIAGNOSIS                          ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📊 USERS:
+   Auth users (can log in):     %
+   Profile users:               %
+   
+👥 PARENTS:
+   Auth parents:                %
+   Profile parents:             %
+   Match: %
+   
+👔 ADMINS:
+   Auth admins:                 %
+   Profile admins:              %
+   Match: %
+
+👶 DATA:
+   Children:                    %
+   Orphaned children:           %
+   Attendance records:          %
+   Payment records:             %
+   Upcoming events:             %
+   Announcements:               %
+   
+🔒 SECURITY:
+   RLS policies:                %
+', 
+    auth_users, profile_users,
+    auth_parents, profile_parents, 
+    CASE WHEN auth_parents = profile_parents THEN '✅' ELSE '❌' END,
+    auth_admins, profile_admins,
+    CASE WHEN auth_admins = profile_admins THEN '✅' ELSE '❌' END,
+    total_children, orphan_children, total_attendance, 
+    total_payments, total_events, total_announcements,
+    policy_count;
   
-  👥 Parents with auth accounts: %
-  👥 Parents with profiles: %
-  👶 Total children: %
-  ⚠️  Children without valid parent: %
-  
-  ', auth_parents, profile_parents, total_children, orphan_children;
+  -- Diagnose issues
+  RAISE NOTICE '
+╔═══════════════════════════════════════════════════════════════╗
+║                         DIAGNOSIS                              ║
+╚═══════════════════════════════════════════════════════════════╝
+';
   
   IF total_children = 0 THEN
-    RAISE NOTICE '❌ PROBLEM: No children in database!';
-    RAISE NOTICE '   Run FIX-PARENT-DATA.sql to add test data';
-  ELSIF orphan_children > 0 THEN
-    RAISE NOTICE '❌ PROBLEM: Some children have invalid parent_id!';
-    RAISE NOTICE '   Run FIX-PARENT-DATA.sql to fix relationships';
-  ELSIF auth_parents != profile_parents THEN
-    RAISE NOTICE '❌ PROBLEM: Auth and profile counts dont match!';
-    RAISE NOTICE '   Some parents cant log in';
-  ELSE
-    RAISE NOTICE '✅ Database looks good!';
-    RAISE NOTICE '   If parents still dont see data, check RLS policies';
+    RAISE NOTICE '❌ CRITICAL: No children in database!';
+    RAISE NOTICE '   → Action: Run FIX-PARENT-DATA.sql to add test data';
+    RAISE NOTICE '';
   END IF;
+  
+  IF orphan_children > 0 THEN
+    RAISE NOTICE '❌ ERROR: % children have invalid parent_id!', orphan_children;
+    RAISE NOTICE '   → Action: Run FIX-PARENT-DATA.sql to fix relationships';
+    RAISE NOTICE '';
+  END IF;
+  
+  IF auth_parents != profile_parents THEN
+    RAISE NOTICE '⚠️  WARNING: Auth parents (%) != Profile parents (%)', auth_parents, profile_parents;
+    RAISE NOTICE '   → Some parents may not be able to log in';
+    RAISE NOTICE '   → Action: Check trigger function or run sync script';
+    RAISE NOTICE '';
+  END IF;
+  
+  IF auth_admins != profile_admins THEN
+    RAISE NOTICE '⚠️  WARNING: Auth admins (%) != Profile admins (%)', auth_admins, profile_admins;
+    RAISE NOTICE '   → Admin accounts may have issues';
+    RAISE NOTICE '';
+  END IF;
+  
+  IF policy_count < 10 THEN
+    RAISE NOTICE '⚠️  WARNING: Only % RLS policies found (expected 10+)', policy_count;
+    RAISE NOTICE '   → Action: Run FIX-RLS-POLICIES.sql';
+    RAISE NOTICE '';
+  END IF;
+  
+  IF total_children > 0 AND orphan_children = 0 AND policy_count >= 10 THEN
+    RAISE NOTICE '✅ Database looks healthy!';
+    RAISE NOTICE '   → If dashboard still shows no data:';
+    RAISE NOTICE '   → 1. Verify you''re logged in as correct user';
+    RAISE NOTICE '   → 2. Check browser console for errors';
+    RAISE NOTICE '   → 3. Try pull-to-refresh on dashboard';
+    RAISE NOTICE '   → 4. Verify parent_id matches your auth.uid()';
+    RAISE NOTICE '';
+  END IF;
+  
+  RAISE NOTICE '
+╔═══════════════════════════════════════════════════════════════╗
+║                      NEXT STEPS                                ║
+╚═══════════════════════════════════════════════════════════════╝
+';
+  
+  IF total_children = 0 OR orphan_children > 0 THEN
+    RAISE NOTICE '1️⃣  Run: supabase/FIX-PARENT-DATA.sql';
+  END IF;
+  
+  IF policy_count < 10 THEN
+    RAISE NOTICE '2️⃣  Run: supabase/FIX-RLS-POLICIES.sql';
+  END IF;
+  
+  RAISE NOTICE '3️⃣  Test login with: thabo@example.com / Password123!';
+  RAISE NOTICE '4️⃣  Check dashboard - should show data';
+  RAISE NOTICE '';
+  
 END $$;

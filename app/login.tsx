@@ -131,7 +131,7 @@ export default function LoginScreen() {
                   onPress={() => setShowPassword(!showPassword)}
                 >
                   <IconSymbol
-                    name={showPassword ? 'eye.slash' : 'eye'}
+                    name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
                     size={20}
                     color={colors.textSecondary}
                   />

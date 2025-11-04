@@ -79,7 +79,7 @@ async function createUser() {
         'Prefer': 'return=representation'
       },
       body: JSON.stringify({
-        auth_user_id: authData.user.id,
+        user_id: authData.user.id,
         email: USER_EMAIL,
         first_name: FIRST_NAME,
         last_name: LAST_NAME,
@@ -98,7 +98,7 @@ async function createUser() {
         console.log('\n📋 SOLUTION: Run this SQL in Supabase Dashboard:\n');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log(`
-INSERT INTO public.users (auth_user_id, email, first_name, last_name, role, phone, is_active)
+INSERT INTO public.users (user_id, email, first_name, last_name, role, phone, is_active)
 VALUES (
   '${authData.user.id}',
   '${USER_EMAIL}',

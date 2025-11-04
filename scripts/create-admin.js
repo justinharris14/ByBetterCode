@@ -3,8 +3,8 @@ const SUPABASE_URL = 'https://bldlekwvgeatnqjwiowq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGxla3d2Z2VhdG5xandpb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1MDEwOTcsImV4cCI6MjA3NzA3NzA5N30.S8YzBbuBaCgzy7Dhox0LlLLsXDgIvQep839mgkWI43g';
 
 async function createAdminUser() {
-  const email = 'admin@creche.com';
-  const password = 'admin123';
+  const email = 'admin@example.com';
+  const password = 'admin123456';
   
   try {
     console.log('🔐 Creating admin user in Supabase Auth...\n');
@@ -45,7 +45,7 @@ async function createAdminUser() {
         'Prefer': 'return=representation'
       },
       body: JSON.stringify({
-        auth_user_id: authData.user.id,
+        user_id: authData.user.id,
         email: email,
         first_name: 'Admin',
         last_name: 'User',

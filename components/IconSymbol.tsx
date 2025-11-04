@@ -41,8 +41,14 @@ const MAPPING = {
 
   // Actions & Controls
   "plus": "add",
+  "plus.circle.fill": "add-circle",
+  "plus.circle": "add-circle-outline",
   "minus": "remove",
+  "minus.circle.fill": "remove-circle",
+  "minus.circle": "remove-circle-outline",
   "xmark": "close",
+  "xmark.circle.fill": "cancel",
+  "xmark.circle": "cancel",
   "checkmark": "check",
   "checkmark.circle.fill": "check-circle",
   "checkmark.circle": "check-circle-outline",
@@ -148,6 +154,7 @@ const MAPPING = {
 
   // Search & Discovery
   "magnifyingglass": "search",
+  "doc.text.magnifyingglass": "find-in-page",
   "line.3.horizontal.decrease": "filter-list",
   "line.3.horizontal.decrease.circle": "filter-list",
   "arrow.up.arrow.down": "sort",

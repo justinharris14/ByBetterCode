@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/users?or=(user_id.eq.${authUserId},auth_user_id.eq.${authUserId})`,
+        `${SUPABASE_URL}/rest/v1/users?user_id=eq.${authUserId}`,
         {
           headers: {
             apikey: SUPABASE_ANON_KEY,

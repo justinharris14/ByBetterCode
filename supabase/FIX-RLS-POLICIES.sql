@@ -34,7 +34,28 @@ CREATE POLICY "Staff can view all children"
     EXISTS (
       SELECT 1 FROM public.users
       WHERE user_id = auth.uid()
-      AND role IN ('teacher', 'admin')
+      AND role IN ( 'admin')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE user_id = auth.uid()
+      AND role IN ( 'admin')
+    )
+  );
+
+-- Separate INSERT policy for admins
+DROP POLICY IF EXISTS "Admins can insert children" ON children;
+CREATE POLICY "Admins can insert children"
+  ON children
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE user_id = auth.uid()
+      AND role IN ( 'admin')
     )
   );
 
@@ -69,7 +90,14 @@ CREATE POLICY "Staff can manage all attendance"
     EXISTS (
       SELECT 1 FROM public.users
       WHERE user_id = auth.uid()
-      AND role IN ('teacher', 'admin')
+      AND role IN ( 'admin')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE user_id = auth.uid()
+      AND role IN ( 'admin')
     )
   );
 
@@ -102,7 +130,14 @@ CREATE POLICY "Staff can manage all payments"
     EXISTS (
       SELECT 1 FROM public.users
       WHERE user_id = auth.uid()
-      AND role IN ('teacher', 'admin')
+      AND role IN ( 'admin')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE user_id = auth.uid()
+      AND role IN ( 'admin')
     )
   );
 
@@ -133,7 +168,7 @@ CREATE POLICY "Staff can manage events"
     EXISTS (
       SELECT 1 FROM public.users
       WHERE user_id = auth.uid()
-      AND role IN ('teacher', 'admin')
+      AND role IN ('admin')
     )
   );
 
@@ -164,7 +199,28 @@ CREATE POLICY "Staff can manage announcements"
     EXISTS (
       SELECT 1 FROM public.users
       WHERE user_id = auth.uid()
-      AND role IN ('teacher', 'admin')
+      AND role IN ( 'admin')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE user_id = auth.uid()
+      AND role IN ( 'admin')
+    )
+  );
+
+-- Separate INSERT policy for admins
+DROP POLICY IF EXISTS "Allow admin to create announcements" ON announcements;
+CREATE POLICY "Allow admin to create announcements"
+  ON announcements
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE user_id = auth.uid()
+      AND role IN ( 'admin')
     )
   );
 
@@ -198,7 +254,7 @@ CREATE POLICY "Staff can view all users"
     EXISTS (
       SELECT 1 FROM public.users
       WHERE user_id = auth.uid()
-      AND role IN ('teacher', 'admin')
+      AND role IN ( 'admin')
     )
   );
 
@@ -208,6 +264,20 @@ CREATE POLICY "Allow trigger to create user profiles"
   FOR INSERT
   TO authenticated
   WITH CHECK (true);
+
+-- Allow admins to insert users manually
+DROP POLICY IF EXISTS "Admins can insert users" ON public.users;
+CREATE POLICY "Admins can insert users"
+  ON public.users
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE user_id = auth.uid()
+      AND role IN ('admin')
+    )
+  );
 
 RAISE NOTICE '✅ Fixed RLS policies for users table';
 
@@ -245,7 +315,19 @@ CREATE POLICY "Staff can view all consents"
     EXISTS (
       SELECT 1 FROM public.users
       WHERE user_id = auth.uid()
-      AND role IN ('teacher', 'admin')
+      AND role IN ( 'admin')
+    )
+  );
+
+-- Separate INSERT policy for parents to create consent forms
+DROP POLICY IF EXISTS "Parents can create consent forms for their children" ON media_consent;
+CREATE POLICY "Parents can create consent forms for their children"
+  ON media_consent
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    child_id IN (
+      SELECT child_id FROM children WHERE parent_id = auth.uid()
     )
   );
 
@@ -280,7 +362,14 @@ CREATE POLICY "Staff can manage all media"
     EXISTS (
       SELECT 1 FROM public.users
       WHERE user_id = auth.uid()
-      AND role IN ('teacher', 'admin')
+      AND role IN ('admin')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE user_id = auth.uid()
+      AND role IN ( 'admin')
     )
   );
 
@@ -292,6 +381,7 @@ RAISE NOTICE '✅ Fixed RLS policies for media table';
 
 -- Absence notifications
 DROP POLICY IF EXISTS "Parents can view their notifications" ON absence_notifications;
+DROP POLICY IF EXISTS "Admins can create absence notifications" ON absence_notifications;
 ALTER TABLE absence_notifications ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Parents can view their notifications"
@@ -300,6 +390,19 @@ CREATE POLICY "Parents can view their notifications"
   TO authenticated
   USING (parent_id = auth.uid())
   WITH CHECK (parent_id = auth.uid());
+
+-- Separate INSERT policy for admins
+CREATE POLICY "Admins can create absence notifications"
+  ON absence_notifications
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE user_id = auth.uid()
+      AND role IN ('teacher')
+    )
+  );
 
 -- Event notifications
 DROP POLICY IF EXISTS "Parents can view their event notifications" ON event_notifications;

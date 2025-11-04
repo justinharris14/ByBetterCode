@@ -21,6 +21,28 @@ module.exports = {
   env: {
     browser: true,
   },
+  settings: {
+    'import/resolver': {
+      typescript: {
+        project: './tsconfig.json',
+      },
+      node: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        paths: ['./']
+      },
+      alias: {
+        map: [
+          ['@', './'],
+          ['@components', './components'],
+          ['@style', './style'],
+          ['@hooks', './hooks'],
+          ['@types', './types'],
+          ['@contexts', './contexts'],
+        ],
+        extensions: ['.ts', '.tsx', '.js', '.jsx', '.json']
+      }
+    }
+  },
   rules: {
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-explicit-any": "off",

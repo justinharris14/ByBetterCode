@@ -64,16 +64,16 @@ BEGIN
   ║              POLICY ANALYSIS                              ║
   ╚══════════════════════════════════════════════════════════╝
   
-  🔍 Current Policy: %
+   Current Policy: %
   
-  ⚠️  PROBLEM: If the policy checks "role" from the users table,
+    PROBLEM: If the policy checks "role" from the users table,
      it might not work because:
      
      1. The policy runs as the authenticated user (auth.uid())
      2. It needs to join to public.users to get the role
      3. The role check might be incorrectly structured
      
-  ✅ SOLUTION: We need a policy that says:
+   SOLUTION: We need a policy that says:
      "parent_id = auth.uid()"
      
      This directly matches the parent_id in children table

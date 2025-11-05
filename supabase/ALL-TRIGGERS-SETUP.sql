@@ -145,10 +145,7 @@ CREATE TRIGGER on_announcement_created
 
 RAISE NOTICE '✅ Trigger 3: Auto-notify parents of new announcements';
 
--- ===========================
--- TRIGGER 4 (OPTIONAL): Auto-update timestamps
--- ===========================
--- 🕐 Automatically sets updated_at field when records change
+
 
 -- First, add updated_at columns if they don't exist
 DO $$
@@ -269,59 +266,9 @@ BEGIN
     );
   
   RAISE NOTICE '
-╔══════════════════════════════════════════════════════════╗
-║           ALL TRIGGERS CONFIGURED! ✅                     ║
-╚══════════════════════════════════════════════════════════╝
 
-📊 Total triggers created: %
 
-🔥 TRIGGER 1: on_auth_user_created
-   • Fires: AFTER INSERT on auth.users
-   • Purpose: Creates user profile automatically
-   • Critical: YES - Without this, users cant log in!
-   
-🎉 TRIGGER 2: on_event_created
-   • Fires: AFTER INSERT on events
-   • Purpose: Notifies all parents of new events
-   • Critical: NO - But improves user experience
-   
-📢 TRIGGER 3: on_announcement_created
-   • Fires: AFTER INSERT on announcements
-   • Purpose: Notifies all parents of new announcements
-   • Critical: NO - But improves user experience
-   
-🕐 TRIGGER 4: set_updated_at (3 triggers)
-   • Fires: BEFORE UPDATE on users, children, payments
-   • Purpose: Auto-updates timestamp fields
-   • Critical: NO - Nice to have for auditing
-   
-💡 WHAT EACH TRIGGER DOES:
 
-1️⃣  User Signs Up → Profile Created Automatically
-    Without this, users have auth but no profile = cant login
-    
-2️⃣  Admin Creates Event → All Parents Notified
-    Parents see notifications in their dashboard
-    
-3️⃣  Admin Creates Announcement → All Parents Notified
-    Parents see notifications in their dashboard
-    
-4️⃣  Record Updated → Timestamp Updated
-    Helps track when data was last modified
-    
-🎯 NEXT STEPS:
-
-1. ✅ Triggers are now active
-2. ✅ Run SYNC-AUTH-TO-PROFILES.sql to fix existing users
-3. ✅ Test by creating a new event or announcement
-4. ✅ Check if parents receive notifications
-5. ✅ Sign up a test user to verify profile creation
-
-📝 Testing checklist:
-   □ Sign up new user → Check if profile exists
-   □ Create event → Check if all parents get notification
-   □ Create announcement → Check if all parents get notification
-   □ Update a record → Check if updated_at changes
    
 ', trigger_count;
 END $$;
